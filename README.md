@@ -12,26 +12,26 @@
 
 Edit the `config.json` file to your desired **node**, **registration**, **storage**, and **database** settings.
 
-Node settings:
+#### Node settings:
 
 * `address`: ip number or domain to an full node.
 * `port`: port to connect to the full node.
 * `user`: username that is allowed to use RPC calls.
 * `pass`: password for the username.
 
-Registrations:
+#### Registrations:
 
 * `registrations`: enabled account registrations if set to **public** or **permissioned**.
 * `wallet`: account name for the wallet that will pay for registrations.
 * TODO: add access and rate limitation configuration.
 
-Storage modes:
+#### Storage modes:
 
 * `minimal`: Stores account names and number, and looks up the transaction hex and inclusion proofs on-demand.
 * `default`: Stores the account names and number as well as the transaction hex and inclusion proofs.
 * `extended`: Stores the full account information, transaction and statistical metadata.
 
-Database storage:
+#### Database storage:
 
 * `path`: the path to a folder where the database is stored.
 * `file`: the filename for the file the database is stored in.
@@ -39,7 +39,7 @@ Database storage:
 
 ## How to use
 
-### Server status
+#### Server status
 
 * `hostname:port/status`
 
@@ -54,7 +54,8 @@ Database storage:
    }
    ```
 
-### Look up registrations
+
+#### Look up registrations
 
 Once the server has indexed an account, the data can be retrieved with the following:
 
@@ -67,7 +68,7 @@ Once the server has indexed an account, the data can be retrieved with the follo
    Returns a list of all registrations with the requested name and number.
 
 
-### Create new accounts
+#### Create new accounts
 
 If the server is configured to enable registrations, new accounts can be requested with the following:
 
