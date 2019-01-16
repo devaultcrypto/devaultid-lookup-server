@@ -41,7 +41,7 @@ Edit the `config.json` file to your desired **node**, **registration**, **storag
 
 #### Server status
 
-* `hostname:port/status`
+* `https://hostname:port/status`
 
    Returns a JSON object with information about the indexing process and server configuration.
    
@@ -59,11 +59,11 @@ Edit the `config.json` file to your desired **node**, **registration**, **storag
 
 Once the server has indexed an account, the data can be retrieved with the following:
 
-* `hostname:port/search/accountNumber/`
+* `https://hostname:port/search/accountNumber`
 
    Returns a list of all registrations with the requested account numbers.
 
-* `hostname:port/search/accountNumber/accountName`
+* `https://hostname:port/search/accountNumber/accountName`
 
    Returns a list of all registrations with the requested name and number.
 
@@ -72,4 +72,4 @@ Once the server has indexed an account, the data can be retrieved with the follo
 
 If the server is configured to enable registrations, new accounts can be requested with the following:
 
-* `hostname:port/register/accountName/paymentData`
+* `https://hostname:port/register/accountName/paymentData`
