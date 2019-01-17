@@ -55,21 +55,21 @@ Edit the `config.json` file to your desired **node**, **registration**, **storag
    ```
 
 
-#### Look up registrations
+#### Look up account registrations
 
-Once the server has indexed an account, the data can be retrieved with the following:
+Once the server has indexed an account, the registration transaction(s) and there inclusion proofs can be retrieved with a GET request to the following locations:
 
-* `https://hostname:port/search/accountNumber`
+* `https://hostname:port/lookup/<accountNumber>`
 
    Returns a list of all registrations with the requested account numbers.
 
-* `https://hostname:port/search/accountNumber/accountName`
+* `https://hostname:port/lookup/<accountNumber>/<accountName>`
 
    Returns a list of all registrations with the requested name and number.
 
 
-#### Create new accounts
+#### Register new accounts
 
-If the server is configured to enable registrations, new accounts can be requested with the following:
+If the server is configured to enable registrations, new accounts can be requested by sending a GET request to the following location:
 
-* `https://hostname:port/register/accountName/paymentData`
+* `https://hostname:port/register/<accountName>/<paymentData>`
