@@ -3,7 +3,7 @@
 ## Installation
 
 ```
-# git clone ...
+# git clone https://gitlab.com/cash-accounts/lookup-server
 # cd lookup-server
 # npm install
 ```
