@@ -1,11 +1,14 @@
 // Read the configuration file.
 const config = require("./config.js");
 
-// Enable support for sqlite databases.
-const Database = require('better-sqlite3');
-
 // Enable support for filesystem operations.
 const filesystem = require('fs');
+
+// Enable RPC connections.
+const rpc = require('node-bitcoin-rpc');
+
+// Enable support for sqlite databases.
+const Database = require('better-sqlite3');
 
 // Open the database in read-write mode.
 const sql = new Database(config.storage.filename, { readonly: false });
@@ -43,6 +46,23 @@ if(config.mode == 'extended')
 let block_chain = sql.prepare('SELECT block_height FROM service_status LEFT JOIN blocks ON (chain_tip = block_hash)').get();
 
 console.log(block_chain.block_height);	
+
+// 
+rpc.setTimeout(2500);
+
+//
+rpc.init(config.node.address, config.node.port, config.node.user, config.node.pass);
+
+rpc.call('getblockhash', [block_chain.block_height + 1], (error, result) => 
+{
+	if(error)
+	{
+		console.log("getblockhash", error);
+		//return res.status(500).json({ err: err });
+	}
+
+	console.log(result);
+});
 
 // Close the database.
 sql.close();
