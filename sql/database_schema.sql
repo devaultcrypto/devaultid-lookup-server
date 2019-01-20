@@ -37,9 +37,6 @@ CREATE TABLE IF NOT EXISTS transactions
 	UNIQUE (transaction_hash)
 );
 
-/* Index transactions by their hash */
-CREATE UNIQUE INDEX IF NOT EXISTS index_transaction ON transactions (transaction_id);
-
 /* Store transaction specific data. */
 CREATE TABLE IF NOT EXISTS transaction_data
 (
@@ -126,8 +123,8 @@ CREATE TABLE IF NOT EXISTS account_payloads
 CREATE TABLE IF NOT EXISTS account_metadata
 (
 	account_id INTEGER NOT NULL,
-	account_hash TEXT NOT NULL,
 	account_emoji TEXT NOT NULL,
+	account_hash TEXT NOT NULL,
 	account_collision_count INTEGER NOT NULL DEFAULT 0,
 	account_collision_length INTEGER NOT NULL DEFAULT 0,
 	PRIMARY KEY (account_id),
@@ -153,5 +150,4 @@ CREATE TABLE IF NOT EXISTS registration_errors
 INSERT OR IGNORE INTO registration_error_types VALUES 
 (1, 'Invalid account name'),
 (2, 'Missing payload data'),
-(3, 'Empty payload data'),
-(4, 'Invalid payload length');
+(3, 'Invalid payload length');
