@@ -1,6 +1,8 @@
 // Enable support for configurable debugging.
 const debug =
 {
+	library: require('debug'),
+
 	struct: require('debug')('calus:struct'),
 	status: require('debug')('calus:status'),
 	action: require('debug')('calus:action'),
@@ -13,6 +15,9 @@ const debug =
 	timer4: require('debug')('calus:timer4'),
 	timer5: require('debug')('calus:timer5'),
 }
+
+// Enable status by default.
+debug.library.enable('calus:status');
 
 // Issue an initial debug message so we can measure loading times.
 debug.struct('Started application.');
