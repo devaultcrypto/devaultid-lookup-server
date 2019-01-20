@@ -19,13 +19,13 @@ Edit the `config.json` file to your desired **node**, **registration**, **storag
 * `user`: username that is allowed to use RPC calls.
 * `pass`: password for the username.
 
-#### Registrations:
+#### Registrations (Not Implemented):
 
 * `registrations`: enabled account registrations if set to **public** or **permissioned**.
 * `wallet`: account name for the wallet that will pay for registrations.
 * TODO: add access and rate limitation configuration.
 
-#### Storage modes:
+#### Storage modes (Not Implemented):
 
 * `minimal`: Stores account names and number, and looks up the transaction hex and inclusion proofs on-demand.
 * `default`: Stores the account names and number as well as the transaction hex and inclusion proofs.
@@ -33,11 +33,10 @@ Edit the `config.json` file to your desired **node**, **registration**, **storag
 
 #### Database storage:
 
-* `path`: the path to a folder where the database is stored.
-* `file`: the filename for the file the database is stored in.
+* `filename`: the full path and filename for the file the database is stored in.
 
 
-## How to use
+## How to use (Not Implemented)
 
 #### Server status
 
