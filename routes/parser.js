@@ -1,8 +1,6 @@
 // Enable support for configurable debugging.
 const debug =
 {
-	library: require('debug'),
-
 	struct: require('debug')('calus:struct'),
 	status: require('debug')('calus:status'),
 	action: require('debug')('calus:action'),
@@ -17,13 +15,13 @@ const debug =
 }
 
 // Enable status by default.
-debug.library.enable('calus:status');
+debug.status.enabled = true;
 
 // Issue an initial debug message so we can measure loading times.
 debug.struct('Started application.');
 
 // Read the configuration file.
-const config = require("./config.js");
+const config = require("../config.js");
 
 // Enable support for filesystem operations.
 const filesystem = require('fs');
@@ -159,35 +157,37 @@ const calculateAccountIdentity = function(blockhash, transactionhash)
 {
 	// Step 1: Concatenate the block hash with the transaction hash
 	let account_hash_step1 = Buffer.concat([blockhash, transactionhash]);;
-//console.log(account_hash_step1);
+
 	// Step 2: Hash the results of the concatenation with sha256
 	let account_hash_step2 = crypto.createHash('sha256').update(account_hash_step1).digest();
-//console.log(account_hash_step2);
+
 	// Step 3: Take the first and last four bytes and discard the rest
 	let account_hash_step3 = account_hash_step2.slice(0, 4);
 	let account_emoji_step3 = account_hash_step2.slice(28, 32);
-//console.log('step 3a:', account_hash_step3);
-//console.log('step 3b:', account_emoji_step3);
+
 	// Step 4a: Convert to decimal notation and store as a string
 	let account_hash_step4 = account_hash_step3.readUInt32BE(0).toString(10);
-//console.log('step 4a:', account_hash_step4);
+
 	// Step 4b: Select an emoji from the emojiHexList
 	let emoji_index = account_emoji_step3.readUInt32BE(0) % 100;
-//console.log('step 4b:', emoji_index);
+
 	// Step 5: Reverse the the string so the last number is first
 	let account_hash_step5 = account_hash_step4.toString().split("").reverse().join("").padEnd(10, '0');
-//console.log('step 5a:', account_hash_step5);
+
 	// Step 5b: calculate the integer codepoint for the emoji
 	let emoji_codepoint = protocol.emojiCodepoints[emoji_index];
-//console.log('step 5b:', emoji_codepoint);
 	
 	// Return the final account identity.
 	return { collisionHash: account_hash_step5, accountEmoji: emoji_codepoint };
 };
 
-(async function()
+//
+const express = require('express');
+const router = express.Router();
+
+router.get('/', async function (req, res)
 {
-	let iterations = 123456789;
+	let iterations = 9;
 	while(iterations--)
 	{
 		// Find a blockheight to request.
@@ -223,7 +223,24 @@ const calculateAccountIdentity = function(blockhash, transactionhash)
 		block.height = getServiceStatusResult.block_height + 1;
 
 		// Request the current blocks hash from the RPC node.
-		block.hashHex = await rpc.getBlockHash(block.height);
+		let getBlockHashResult = await rpc.getBlockHash(block.height);
+
+		// Check if the block was valid.
+		if(typeof getBlockHashResult != 'string')
+		{
+			// If the block cannot be found due to not being indexed by full node yet..
+			if(getBlockHashResult.error.code == -8)
+			{
+				//
+				debug.silent('Requested a block height that does not yet exist.');
+
+				// break the while loop.
+				break;
+			}
+		}
+
+		// Store the block hash a hex string and buffer.
+		block.hashHex = getBlockHashResult;
 		block.hash = Buffer.from(block.hashHex, 'hex');
 
 		//
@@ -603,7 +620,7 @@ const calculateAccountIdentity = function(blockhash, transactionhash)
 					}
 
 					// Mode: default
-					if(false)
+					if(true)
 					{
 						debug.timer1('-');
 						// Get the transaction inclusion proof.
@@ -662,7 +679,9 @@ const calculateAccountIdentity = function(blockhash, transactionhash)
 		// Update service status
 		queries.updateServiceStatus.run({ chain_tip: block.block_id });
 	}
-})();
+
+	return res.status(200).json({});
+});
 
 
 /*
@@ -673,30 +692,6 @@ class Test
 		let a = await stuff();
 	}
 }
-
-				let transactionList = getblock.result.tx;
-
-				// Fetch detailed information on the transaction.
-				rpc.call('getrawtransaction', [transactionHash, 1], (error, getrawtransaction) => 
-				{
-					callback();
-
-					if(error)
-					{
-						console.log("getblockhash", error);
-						//return res.status(500).json({ err: err });
-					}
-					else
-					{
-						
-						console.log(getrawtransaction.result.vout);
-					}
-				});
-			}
-
-			// getblock.result.hash = ""
-			// getblock.result.tx = []
-			//console.log(getblock.result.hash, getblock.result.tx);
 */
 
 process.on
@@ -710,3 +705,5 @@ process.on
 		sql.close();
 	}
 );
+
+module.exports = router;
