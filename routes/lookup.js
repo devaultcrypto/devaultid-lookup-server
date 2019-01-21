@@ -6,7 +6,6 @@ const debug =
 }
 
 // Enable lookup messages by default.
-debug.lookup.enabled = true;
 debug.errors.enabled = true;
 
 // Read the configuration file.
