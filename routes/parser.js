@@ -187,7 +187,7 @@ const router = express.Router();
 
 router.get('/', async function (req, res)
 {
-	let iterations = 9;
+	let iterations = 123456789;
 	while(iterations--)
 	{
 		// Find a blockheight to request.
@@ -624,7 +624,7 @@ router.get('/', async function (req, res)
 					{
 						debug.timer1('-');
 						// Get the transaction inclusion proof.
-						let rawOutputProof = await rpc.getTxoutProof([ account.transaction.hashHex ]);
+						let rawOutputProof = await rpc.getTxoutProof([ account.transaction.hashHex ], block.hashHex);
 						debug.timer1('RPC:getTxOutProof');
 
 						debug.timer1('-');
@@ -680,7 +680,7 @@ router.get('/', async function (req, res)
 		queries.updateServiceStatus.run({ chain_tip: block.block_id });
 	}
 
-	return res.status(200).json({});
+	return res.status(200).json(null);
 });
 
 

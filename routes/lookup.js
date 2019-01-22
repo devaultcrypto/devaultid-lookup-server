@@ -2,6 +2,7 @@
 const debug =
 {
 	lookup: require('debug')('calus:lookup'),
+	object: require('debug')('calus:object'),
 	errors: require('debug')('calus:errors'),
 }
 
@@ -29,6 +30,7 @@ const sql = new Database(config.storage.filename, { memory: false, readonly: tru
 // Load the database queries.
 const queries = 
 {
+	lookupByIdentifier: sql.prepare(filesystem.readFileSync('sql/query_lookup_by_identifier.sql', 'utf8').trim()),
 	lookupByName: sql.prepare(filesystem.readFileSync('sql/query_lookup_by_name.sql', 'utf8').trim()),
 	lookupByBlock: sql.prepare(filesystem.readFileSync('sql/query_lookup_by_block.sql', 'utf8').trim()),
 };
@@ -43,89 +45,54 @@ const protocol =
 const express = require('express');
 const router = express.Router();
 
-// 
-router.get('/:accountNumber', async function (req, res)
-{
-	//
-	debug.lookup('Lookup requested for block #' + req.params['accountNumber']);
-
-	// Initialize response object.
-	let lookup =
-	{
-		block: parseInt(req.params['accountNumber']) + protocol.blockModifier,
-		results: null
-	}
-
-	try
-	{
-		// Query the database for the result.
-		let result = queries.lookupByBlock.all({ account_number: req.params['accountNumber'] });
-
-		// If no result could be found..
-		if(typeof result == 'object' && result.length == 0)
-		{
-			// Return 404 eror, and an empty result set.
-			return res.status(404).json(lookup);
-		}
-
-		// If results were found, go over them and..
-		for(resultIndex in result)
-		{
-			// .. check if they have a cached transaction and inclusion proof and ..
-			if(!result[resultIndex].inclusion_proof)
-			{
-				// .. if the given registration lacks a proof, fetch it from the full node on-demand.
-				result[resultIndex].inclusion_proof = await rpc.getTxoutProof([ result[resultIndex].transaction_hash ]);
-				result[resultIndex].transaction = await rpc.getRawTransaction(result[resultIndex].transaction_hash);
-			}
-
-			// Remove the transaction hash from the result set.
-			delete result[resultIndex].transaction_hash;
-		}
-
-		// Add the final data to the result of the response object.
-		lookup.results = result;
-
-		// 
-		debug.lookup('Delivering lookup result:', typeof result);
-
-		// Return a 200 OK with the lookup result.
-		return res.status(200).json(lookup);
-	}
-	catch(error)
-	{
-		// Log an error for an administrator to investigate.
-		debug.errors('Failed to lookup account:', error);
-
-		// Return a 500 Internal Server Error.
-		return res.status(500);
-	}
-});
-
 //
-router.get('/:accountNumber/:accountName', async function (req, res)
+router.get('/:account_number/:account_name?/:account_hash?', async function (req, res)
 {
 	//
-	debug.lookup('Lookup requested for ' + req.params['accountName'] + '#' + req.params['accountNumber']);
+	let lookupIdentifier = (req.params['account_name'] ? req.params['account_name'] : '') + '#' + req.params['account_number'] + (req.params['account_hash'] ? "." + req.params['account_hash'] : "");
+
+	//
+	debug.lookup('Lookup requested for ' + lookupIdentifier);
 
 	// Initialize response object.
 	let lookup =
 	{
-		name: req.params['accountName'],
-		block: parseInt(req.params['accountNumber']) + protocol.blockModifier,
+		identifier: lookupIdentifier,
+		block: parseInt(req.params['account_number']) + protocol.blockModifier,
 		results: null
 	}
 
 	try
 	{
-		// Query the database for the result.
-		let result = queries.lookupByName.all({ account_number: req.params['accountNumber'], account_name: req.params['accountName'] });
+		let result = null;
+		if(req.params['account_hash'])
+		{
+			// Query the database for the result.
+			result = queries.lookupByIdentifier.all(req.params);
+		}
+		else if(req.params['account_name'])
+		{
+			// Query the database for the result.
+			result = queries.lookupByName.all(req.params);
+		}
+		else
+		{
+			// Query the database for the result.
+			result = queries.lookupByBlock.all(req.params);
+		}
 
 		// If no result could be found..
-		if(typeof result == 'object' && result.length == 0)
+		if(typeof result == 'object' && Object.keys(result).length == 0)
 		{
 			// Return 404 eror, and an empty result set.
 			return res.status(404).json(lookup);
+		}
+
+		// If a hash was provided and more than one result was found..
+		if(req.params['account_hash'] && Object.keys(result).length > 1)
+		{
+			// Return a 409 Conflict.
+			return res.status(409).json({ error: 'More than one account matched with the requested parameters.' });
 		}
 
 		// If results were found, go over them and..
@@ -135,11 +102,12 @@ router.get('/:accountNumber/:accountName', async function (req, res)
 			if(!result[resultIndex].inclusion_proof)
 			{
 				// .. if the given registration lacks a proof, fetch it from the full node on-demand.
-				result[resultIndex].inclusion_proof = await rpc.getTxoutProof([ result[resultIndex].transaction_hash ]);
+				result[resultIndex].inclusion_proof = await rpc.getTxoutProof([ result[resultIndex].transaction_hash ], result[resultIndex].block_hash);
 				result[resultIndex].transaction = await rpc.getRawTransaction(result[resultIndex].transaction_hash);
 			}
 
-			// Remove the transaction hash from the result set.
+			// Remove the block and transaction hash from the result set.
+			delete result[resultIndex].block_hash;
 			delete result[resultIndex].transaction_hash;
 		}
 
@@ -147,7 +115,8 @@ router.get('/:accountNumber/:accountName', async function (req, res)
 		lookup.results = result;
 
 		// 
-		debug.lookup('Delivering lookup result:', typeof result);
+		debug.lookup('Delivering lookup result.');
+		debug.object(lookup);
 
 		// Return a 200 OK with the lookup result.
 		return res.status(200).json(lookup);
