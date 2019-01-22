@@ -10,7 +10,13 @@
 
 ## Configuration
 
-Edit the `config.json` file to your desired **node**, **registration**, **storage**, and **database** settings.
+Edit the `config.json` file to your desired **server** and **node** settings.
+
+#### Server settings:
+
+* `port`: Which port the server should listen for requests on.
+* `database`: Where to store the servers database file(s).
+* `storage`: What data should be cached by the server.
 
 #### Node settings:
 
@@ -19,24 +25,14 @@ Edit the `config.json` file to your desired **node**, **registration**, **storag
 * `user`: username that is allowed to use RPC calls.
 * `pass`: password for the username.
 
-#### Registrations (Not Implemented):
 
-* `registrations`: enabled account registrations if set to **public** or **permissioned**.
-* `wallet`: account name for the wallet that will pay for registrations.
-* TODO: add access and rate limitation configuration.
+## How to use
 
-#### Storage modes (Not Implemented):
+Before you can use the lookup server you need to start it by running:
 
-* `minimal`: Stores account names and number, and looks up the transaction hex and inclusion proofs on-demand.
-* `default`: Stores the account names and number as well as the transaction hex and inclusion proofs.
-* `extended`: Stores the full account information, transaction and statistical metadata.
-
-#### Database storage:
-
-* `filename`: the full path and filename for the file the database is stored in.
-
-
-## How to use (Not Implemented)
+```
+# node server.js
+```
 
 #### Server status
 
@@ -67,7 +63,16 @@ Once the server has indexed an account, the registration transaction(s) and ther
    Returns a list of all registrations with the requested name and number.
 
 
-#### Register new accounts
+#### Look up account metadata
+
+Once the server has indexed an account, the account metadata can be retrieved with a GET request to the following locations:
+
+* `https://hostname:port/account/<accountNumber>/<accountName>/<accountHash>`
+
+   Returns metadata for a single account.
+
+
+#### Register new accounts (NOT IMPLEMENTED)
 
 If the server is configured to enable registrations, new accounts can be requested by sending a GET request to the following location:
 
