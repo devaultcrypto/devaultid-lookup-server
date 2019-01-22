@@ -1,5 +1,9 @@
 # Cash Account Lookup Server
 
+## Requirements
+
+This lookup server is written for NodeJS and fetches data and gets information about new blocks from a full node supporting the Bitcoin RPC interface configured to index all transactions.
+
 ## Installation
 
 ```
