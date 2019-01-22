@@ -3,7 +3,9 @@ const debug =
 {
 	struct: require('debug')('calus:struct'),
 	status: require('debug')('calus:status'),
+	blocks: require('debug')('calus:blocks'),
 	action: require('debug')('calus:action'),
+	result: require('debug')('calus:result'),
 	object: require('debug')('calus:object'),
 	silent: require('debug')('calus:silent'),
 
@@ -12,6 +14,7 @@ const debug =
 	timer3: require('debug')('calus:timer3'),
 	timer4: require('debug')('calus:timer4'),
 	timer5: require('debug')('calus:timer5'),
+	timer6: require('debug')('calus:timer6'),
 }
 
 // Enable status by default.
@@ -181,12 +184,24 @@ const calculateAccountIdentity = function(blockhash, transactionhash)
 	return { collisionHash: account_hash_step5, accountEmoji: emoji_codepoint };
 };
 
-//
-const express = require('express');
-const router = express.Router();
+// Set initial parsing state.
+var parserState = null;
 
-router.get('/', async function (req, res)
+// Wrap the parsing function in an async function.
+const parseBlock = async function (req, res)
 {
+	debug.timer6('Got notified of new block(s).');
+
+	// Return OK if we're already indexing.
+	if(parserState)
+	{
+		return res.status(200).json(null);
+	}
+	else
+	{
+		parserState = true;
+	}
+
 	let iterations = 123456789;
 	while(iterations--)
 	{
@@ -195,7 +210,6 @@ router.get('/', async function (req, res)
 
 		//
 		debug.struct('Loaded indexing service state.');
-		debug.status('Current chain tip: #' + getServiceStatusResult.block_height);
 		debug.object(getServiceStatusResult);
 
 		debug.timer1("Starting to parse block");
@@ -270,7 +284,7 @@ router.get('/', async function (req, res)
 		debug.timer2("SQL: linkBlock");
 
 		//
-		debug.struct('Block #' + block.height + ' [' + block.hashHex + ']:', "\n");
+		debug.blocks('Parsing block #' + block.height + ' [' + block.hashHex + ']');
 
 		let newBlock = await rpc.getBlock(block.hashHex, true, true);
 		let transactionList = newBlock.tx;
@@ -660,7 +674,7 @@ router.get('/', async function (req, res)
 					debug.timer5("Completed storing account.");
 
 					//
-					debug.status("Decoded registration (" + account.emoji + ") " + account.name + "#" + account.number + "." + account.hash);
+					debug.result("Stored registration (" + account.emoji + ") " + account.name + "#" + account.number + "." + account.hash);
 				}
 			}
 			catch(error)
@@ -680,20 +694,26 @@ router.get('/', async function (req, res)
 		queries.updateServiceStatus.run({ chain_tip: block.block_id });
 	}
 
-	return res.status(200).json(null);
-});
-
-
-/*
-class Test
-{
-	async something()
+	parserState = false;
+	debug.timer6('Completed parsing new block(s).');
+	try
 	{
-		let a = await stuff();
+		return res.status(200).json(null);
 	}
-}
-*/
+	catch(error)
+	{
+		return null;
+	}
+};
 
+// Enable support for Express apps
+const express = require('express');
+const router = express.Router();
+
+// Call parseBlock when this route is requested.
+router.get('/', parseBlock);
+
+// ...
 process.on
 (
 	'beforeExit', 
@@ -705,5 +725,8 @@ process.on
 		sql.close();
 	}
 );
+
+// Parse blocks once on startup.
+parseBlock(null, null);
 
 module.exports = router;

@@ -56,7 +56,10 @@ const router = express.Router();
 router.get('/:account_number/:account_name/:account_hash?', async function (req, res)
 {
 	//
-	debug.lookup('Metadata requested for ' + req.params['account_name'] + '#' + req.params['account_number'] + (req.params['account_hash'] ? "." + req.params['account_hash'] : ""));
+	let lookupIdentifier = (req.params['account_name'] ? req.params['account_name'] : '') + '#' + req.params['account_number'] + (req.params['account_hash'] ? "." + req.params['account_hash'] : "");
+
+	//
+	debug.lookup('Registration metadata for ' + lookupIdentifier + ' requested by ' + req.ip);
 
 	try
 	{
@@ -126,7 +129,7 @@ router.get('/:account_number/:account_name/:account_hash?', async function (req,
 		}
 
 		// 
-		debug.lookup('Delivering metadata result.');
+		debug.lookup('Registration metadata for ' + lookupIdentifier + ' delivered to ' + req.ip);
 		debug.object(accounts[account_id]);
 
 		// Return a 200 OK with the lookup result.

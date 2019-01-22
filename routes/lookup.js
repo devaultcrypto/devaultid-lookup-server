@@ -52,7 +52,7 @@ router.get('/:account_number/:account_name?/:account_hash?', async function (req
 	let lookupIdentifier = (req.params['account_name'] ? req.params['account_name'] : '') + '#' + req.params['account_number'] + (req.params['account_hash'] ? "." + req.params['account_hash'] : "");
 
 	//
-	debug.lookup('Lookup requested for ' + lookupIdentifier);
+	debug.lookup('Registration transaction(s) for ' + lookupIdentifier + ' requested by ' + req.ip);
 
 	// Initialize response object.
 	let lookup =
@@ -84,8 +84,8 @@ router.get('/:account_number/:account_name?/:account_hash?', async function (req
 		// If no result could be found..
 		if(typeof result == 'object' && Object.keys(result).length == 0)
 		{
-			// Return 404 eror, and an empty result set.
-			return res.status(404).json(lookup);
+			// Return 404 eror.
+			return res.status(404).json({ error: 'No account matched the requested parameters.' });
 		}
 
 		// If a hash was provided and more than one result was found..
@@ -115,7 +115,7 @@ router.get('/:account_number/:account_name?/:account_hash?', async function (req
 		lookup.results = result;
 
 		// 
-		debug.lookup('Delivering lookup result.');
+		debug.lookup('Registration transaction(s) for ' + lookupIdentifier + ' delivered to ' + req.ip);
 		debug.object(lookup);
 
 		// Return a 200 OK with the lookup result.
