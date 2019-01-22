@@ -20,6 +20,7 @@ const debug =
 // Enable status by default.
 debug.status.enabled = true;
 debug.blocks.enabled = true;
+debug.result.enabled = true;
 
 // Issue an initial debug message so we can measure loading times.
 debug.struct('Started application.');
