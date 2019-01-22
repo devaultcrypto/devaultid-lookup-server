@@ -8,6 +8,7 @@ const debug =
 
 // Enable lookup messages by default.
 debug.errors.enabled = true;
+debug.lookup.enabled = true;
 
 // Read the configuration file.
 const config = require("../config.js");
