@@ -25,6 +25,14 @@ Edit the `config.json` file to your desired **server** and **node** settings.
 * `user`: username that is allowed to use RPC calls.
 * `pass`: password for the username.
 
+#### Automatic block notifications
+
+To make the server automatically respond to new blocks, add a line in `/etc/bitcoin/bitcoin.conf`:
+
+```
+# Update cash account index upon new block.
+blocknotify=curl "http://localhost:3001/newblock"
+```
 
 ## How to use
 
@@ -34,7 +42,7 @@ Before you can use the lookup server you need to start it by running:
 # node server.js
 ```
 
-#### Server status
+#### Server status (NOT IMPLEMENTED)
 
 * `https://hostname:port/status`
 
