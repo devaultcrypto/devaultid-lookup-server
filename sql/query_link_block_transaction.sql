@@ -1,1 +1,2 @@
-INSERT OR IGNORE INTO block_transactions (block_id, transaction_id) VALUES (:block_id, :transaction_id)
+INSERT OR IGNORE INTO block_transactions (block_height, transaction_id) 
+VALUES (:height, :transactionId)

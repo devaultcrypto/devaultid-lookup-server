@@ -25,7 +25,7 @@ const filesystem = require('fs');
 const Database = require('better-sqlite3');
 
 // Open the database in read-write mode.
-const sql = new Database(config.storage.filename, { memory: false, readonly: true });
+const sql = new Database(config.server.database, { memory: false, readonly: true });
 
 // Load the database queries.
 const queries = 
@@ -46,10 +46,10 @@ const express = require('express');
 const router = express.Router();
 
 //
-router.get('/:account_number/:account_name?/:account_hash?', async function (req, res)
+router.get('/:accountNumber/:accountName?/:accountHash?', async function (req, res)
 {
 	//
-	let lookupIdentifier = (req.params['account_name'] ? req.params['account_name'] : '') + '#' + req.params['account_number'] + (req.params['account_hash'] ? "." + req.params['account_hash'] : "");
+	let lookupIdentifier = (req.params['accountName'] ? req.params['accountName'] : '') + '#' + req.params['accountNumber'] + (req.params['accountHash'] ? "." + req.params['accountHash'] : "");
 
 	//
 	debug.lookup('Registration transaction(s) for ' + lookupIdentifier + ' requested by ' + req.ip);
@@ -58,19 +58,19 @@ router.get('/:account_number/:account_name?/:account_hash?', async function (req
 	let lookup =
 	{
 		identifier: lookupIdentifier,
-		block: parseInt(req.params['account_number']) + protocol.blockModifier,
+		block: parseInt(req.params['accountNumber']) + protocol.blockModifier,
 		results: null
 	}
 
 	try
 	{
 		let result = null;
-		if(req.params['account_hash'])
+		if(req.params['accountHash'])
 		{
 			// Query the database for the result.
 			result = queries.lookupByIdentifier.all(req.params);
 		}
-		else if(req.params['account_name'])
+		else if(req.params['accountName'])
 		{
 			// Query the database for the result.
 			result = queries.lookupByName.all(req.params);
@@ -89,7 +89,7 @@ router.get('/:account_number/:account_name?/:account_hash?', async function (req
 		}
 
 		// If a hash was provided and more than one result was found..
-		if(req.params['account_hash'] && Object.keys(result).length > 1)
+		if(req.params['accountHash'] && Object.keys(result).length > 1)
 		{
 			// Return a 409 Conflict.
 			return res.status(409).json({ error: 'More than one account matched with the requested parameters.' });

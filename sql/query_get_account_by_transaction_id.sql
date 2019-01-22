@@ -1,1 +1,3 @@
-SELECT * FROM accounts WHERE transaction_id = :transaction_id
+SELECT * 
+FROM accounts 
+WHERE transaction_id = :transactionId

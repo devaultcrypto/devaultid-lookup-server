@@ -1,1 +1,2 @@
-INSERT OR IGNORE INTO block_chain (block_id, chain_parent, chain_tip) VALUES (:block, :parent, :block)
+INSERT OR IGNORE INTO block_chain (block_height, chain_parent, chain_tip)
+VALUES (:height, :parentHeight, :height)

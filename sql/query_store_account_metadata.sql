@@ -1,1 +1,0 @@
-INSERT OR IGNORE INTO account_metadata (account_id, account_emoji, account_hash, account_collision_count, account_collision_length) VALUES (:account_id, :emoji, :hash, :collisionCount, :collisionLength)

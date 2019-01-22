@@ -25,7 +25,7 @@ const filesystem = require('fs');
 const Database = require('better-sqlite3');
 
 // Open the database in read-write mode.
-const sql = new Database(config.storage.filename, { memory: false, readonly: true });
+const sql = new Database(config.server.database, { memory: false, readonly: true });
 
 // Load the database queries.
 const queries = 
@@ -53,10 +53,10 @@ const express = require('express');
 const router = express.Router();
 
 //
-router.get('/:account_number/:account_name/:account_hash?', async function (req, res)
+router.get('/:accountNumber/:accountName/:accountHash?', async function (req, res)
 {
 	//
-	let lookupIdentifier = (req.params['account_name'] ? req.params['account_name'] : '') + '#' + req.params['account_number'] + (req.params['account_hash'] ? "." + req.params['account_hash'] : "");
+	let lookupIdentifier = (req.params['accountName'] ? req.params['accountName'] : '') + '#' + req.params['accountNumber'] + (req.params['accountHash'] ? "." + req.params['accountHash'] : "");
 
 	//
 	debug.lookup('Registration metadata for ' + lookupIdentifier + ' requested by ' + req.ip);
@@ -64,7 +64,7 @@ router.get('/:account_number/:account_name/:account_hash?', async function (req,
 	try
 	{
 		let result = null;
-		if(req.params['account_hash'])
+		if(req.params['accountHash'])
 		{
 			// Query the database for the result.
 			result = queries.metadataByIdentifier.all(req.params);
@@ -92,15 +92,20 @@ router.get('/:account_number/:account_name/:account_hash?', async function (req,
 		{
 			// Set the current account id.
 			account_id = result[resultIndex].account_id;
-			account_identifier = result[resultIndex].account_name_text + '#' + result[resultIndex].account_number + (result[resultIndex].account_collision_length > 0 ? '.' + result[resultIndex].account_hash.substring(0, result[resultIndex].account_collision_length) : '') + ';';
+			account_identifier = result[resultIndex].name + '#' + result[resultIndex].number + (result[resultIndex].collision_length > 0 ? '.' + result[resultIndex].collision_hash.substring(0, result[resultIndex].collision_length) : '') + ';';
 
 			// Parse account information.
 			let account =
 			{
-				emoji: result[resultIndex].account_emoji,
-				name: result[resultIndex].account_name_text,
-				number: result[resultIndex].account_number,
-				hash: result[resultIndex].account_hash,
+				emoji: result[resultIndex].emoji,
+				name: result[resultIndex].name,
+				number: result[resultIndex].number,
+				collision:
+				{
+					hash: result[resultIndex].collision_hash,
+					count: result[resultIndex].collision_count,
+					length: result[resultIndex].collision_length,
+				},
 				payment: [],
 			}
 
