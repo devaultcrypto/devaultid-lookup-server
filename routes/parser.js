@@ -504,7 +504,7 @@ const parseBlock = async function (req, res)
 							// Type: Payment Code
 							case 3:
 							{
-								payload.address = bch.encoding.Base58Check.encode(payload.data);
+								payload.address = bch.encoding.Base58Check.encode(Buffer.concat([ Buffer.from('47', 'hex'), payload.data ]));
 								break;
 							}
 							// Type: Stealth Keys
