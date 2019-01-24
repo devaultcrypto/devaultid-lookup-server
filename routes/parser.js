@@ -59,7 +59,7 @@ deepSet = (input) =>
 debug.struct('Loaded dependencies.');
 
 //
-const rpc = new bchRPC(config.node.address, config.node.user, config.node.pass, config.node.port, 5000);
+const rpc = new bchRPC(config.node.address, config.node.user, config.node.pass, config.node.port, 5000, false);
 
 debug.status('Connected to RPC node');
 
@@ -238,297 +238,305 @@ const parseBlock = async function (req, res)
 		// Store information on the current block.
 		block.height = getServiceStatusResult.block_height + 1;
 
-		// Request the current blocks hash from the RPC node.
-		let getBlockHashResult = await rpc.getBlockHash(block.height);
-
-		// Check if the block was valid.
-		if(typeof getBlockHashResult != 'string')
+		try
 		{
-			// If the block cannot be found due to not being indexed by full node yet..
-			if(getBlockHashResult.error.code == -8)
+			// Request the current blocks hash from the RPC node.
+			let getBlockHashResult = await rpc.getBlockHash(block.height);
+
+			// Check if the block was valid.
+			if(typeof getBlockHashResult != 'string')
 			{
-				//
-				debug.silent('Requested a block height that does not yet exist.');
+				// If the block cannot be found due to not being indexed by full node yet..
+				if(getBlockHashResult.error.code == -8)
+				{
+					//
+					debug.silent('Requested a block height that does not yet exist.');
 
-				// break the while loop.
-				break;
+					// break the while loop.
+					break;
+				}
 			}
-		}
 
-		// Store the block hash a hex string and buffer.
-		block.hashHex = getBlockHashResult;
-		block.hash = Buffer.from(block.hashHex, 'hex');
-
-		//
-		debug.timer2("RPC: getBlockHash");
-
-		// Store the block in the database (if necessary)
-		queries.storeBlock.run(block);
-
-		//
-		debug.timer2("SQL: storeBlock");
-
-		// Load the block and its parent from the database.
-		let getCurrentBlockResult = queries.getBlockByHash.get(block);
-		let getParentBlockResult = queries.getBlockByHash.get(block);
-
-		//
-		debug.timer2("SQL: getBlockByHash (current and parent)");
-
-		// Link the block to its parent.
-		queries.linkBlock.run(block);
-
-		//
-		debug.timer2("SQL: linkBlock");
-
-		//
-		debug.blocks('Parsing block #' + block.height + ' [' + block.hashHex + ']');
-
-		let newBlock = await rpc.getBlock(block.hashHex, true, true);
-		let transactionList = newBlock.tx;
-
-		/*
-		* 1) To register a Cash Account you broadcast a Bitcoin Cash transaction 
-		* 2) with a single OP_RETURN output in any position, 
-		* 3) containing a Protocol Identifier, an Account Name and 
-		* 4) one or more Payment Data.
-		*/
-
-		// 1) Validating that there is a mined (and therefor broadcasted) registration transaction
-		for(transactionIndex in transactionList)
-		{
-			// Initialize an empty transaction object.
-			let transaction = {};
-
-			// Copy transaction hash locally for legibility.
-			transaction.hashHex = transactionList[transactionIndex];
-			transaction.hash = Buffer.from(transaction.hashHex, 'hex');
-
-			// Initialize empty values for the transaction body and proof.
-			transaction.proof = null;
-			transaction.body = null;
+			// Store the block hash a hex string and buffer.
+			block.hashHex = getBlockHashResult;
+			block.hash = Buffer.from(block.hashHex, 'hex');
 
 			//
-			debug.struct("Transaction [" + transaction.hashHex + "]");
-			debug.timer2("-");
+			debug.timer2("RPC: getBlockHash");
 
-			try
+			// Store the block in the database (if necessary)
+			queries.storeBlock.run(block);
+
+			//
+			debug.timer2("SQL: storeBlock");
+
+			// Load the block and its parent from the database.
+			let getCurrentBlockResult = queries.getBlockByHash.get(block);
+			let getParentBlockResult = queries.getBlockByHash.get(block);
+
+			//
+			debug.timer2("SQL: getBlockByHash (current and parent)");
+
+			// Link the block to its parent.
+			queries.linkBlock.run(block);
+
+			//
+			debug.timer2("SQL: linkBlock");
+
+			//
+			debug.blocks('Parsing block #' + block.height + ' [' + block.hashHex + ']');
+
+			let newBlock = await rpc.getBlock(block.hashHex, true, true);
+			let transactionList = newBlock.tx;
+
+			/*
+			* 1) To register a Cash Account you broadcast a Bitcoin Cash transaction 
+			* 2) with a single OP_RETURN output in any position, 
+			* 3) containing a Protocol Identifier, an Account Name and 
+			* 4) one or more Payment Data.
+			*/
+
+			// 1) Validating that there is a mined (and therefor broadcasted) registration transaction
+			for(transactionIndex in transactionList)
 			{
-				// Get the raw transaction.
-				let rawTransaction = await rpc.getRawTransaction(transaction.hashHex, 1);
+				// Initialize an empty transaction object.
+				let transaction = {};
+
+				// Copy transaction hash locally for legibility.
+				transaction.hashHex = transactionList[transactionIndex];
+				transaction.hash = Buffer.from(transaction.hashHex, 'hex');
+
+				// Initialize empty values for the transaction body and proof.
+				transaction.proof = null;
+				transaction.body = null;
 
 				//
-				debug.timer2("RPC: getRawTransaction");
-
-				// Initialize control parameters to measure OP_RETURN outputs.
-				let opReturnCount = 0;
-				let opReturnIndex = null;
-
-				// Go over each output in the transction and ..
-				for(outputIndex in rawTransaction.vout)
-				{
-					// Copy output to a local variable for legibility.
-					let currentOuput = rawTransaction.vout[outputIndex];
-
-					// Check if this output starts with an OP_RETURN opcode.
-					if(currentOuput.scriptPubKey.hex.startsWith('6a'))
-					{
-						// Increase the counter and store a link to this output.
-						opReturnCount += 1;
-						opReturnIndex = outputIndex;
-					}
-				}
-
-				//
-				debug.timer2("NJS: Evaluated outputs for OP_RETURN");
-
-				// 2a) Validate that there exist at least one OP_RETURN output.
-				if(opReturnCount == 0)
-				{
-					debug.silent('Discarding [' + transaction.hashHex + ']: Missing OP_RETURN output.');
-					continue;
-				}
-
-				// 2b) Validating that there exist no more than a single OP_RETURN output.
-				if(opReturnCount > 1)
-				{
-					debug.action('Discarding [' + transaction.hashHex + ']: Multiple OP_RETURN outputs.');
-					continue;
-				}
-
-				// 3a) Validating that it has a protocol identifier
-				if(!rawTransaction.vout[opReturnIndex].scriptPubKey.hex.startsWith('6a0401010101'))
-				{
-					debug.silent('Discarding [' + transaction.hashHex + ']: Invalid protocol identifier.');
-					continue;
-				}
-
-				// If configured to store transaction body and inclusion proofs..
-				if(config.server.storage >= 2)
-				{
-					// Store the transaction data.
-					transaction.body = Buffer.from(rawTransaction.hex, 'hex');
-
-					// Get the transaction inclusion proof.
-					let rawOutputProof = await rpc.getTxoutProof([ transaction.hashHex ], block.hashHex);
-
-					// Store the inclusion proof on the transaction.
-					transaction.proof = Buffer.from(rawOutputProof, 'hex');
-				}
-
-				// Store the remainder of the transaction hex, after discarding the OP_RETURN and PROTOCOL IdENTIFIER push.
-				let registration = Buffer.from(rawTransaction.vout[opReturnIndex].scriptPubKey.hex, 'hex').slice(6);
-				let registrationParts = [];
-
-				//
+				debug.struct("Transaction [" + transaction.hashHex + "]");
 				debug.timer2("-");
 
-				// While there is still data in the output..
-				while(registration.length > 1)
+				try
 				{
-					// Initialize default push and drop lengths.
-					let pushLength = 0;
-					let dropLength = 1;
+					// Get the raw transaction.
+					let rawTransaction = await rpc.getRawTransaction(transaction.hashHex, 1);
 
-					// Read the current opCode.
-					let opCode = registration.readUInt8(0);
+					//
+					debug.timer2("RPC: getRawTransaction");
 
-					// Determine the length of the pushed data and control codes.
-					if(opCode <= 75) { pushLength = opCode; }
-					if(opCode == 76) { pushLength = registration.readUInt8(1);    dropLength += 1; }
-					if(opCode == 77) { pushLength = registration.readUInt16BE(1); dropLength += 2; }
-					if(opCode == 78) { pushLength = registration.readUInt32BE(1); dropLength += 4; }
+					// Initialize control parameters to measure OP_RETURN outputs.
+					let opReturnCount = 0;
+					let opReturnIndex = null;
 
-					// Remove the control codes.
-					registration = registration.slice(dropLength);
-
-					// Read and remove the pushlength if more than 0.
-					if(pushLength > 0)
+					// Go over each output in the transction and ..
+					for(outputIndex in rawTransaction.vout)
 					{
-						// Push the value to the parts array.
-						registrationParts.push(registration.slice(0, pushLength));
+						// Copy output to a local variable for legibility.
+						let currentOuput = rawTransaction.vout[outputIndex];
 
-						// Remove the value data.
-						registration = registration.slice(pushLength);
-					}
-				}
-
-				//
-				debug.timer2("NJS: Parsed OP_RETURN structure");
-
-				// Store the transaction so we can reference it in validity status.
-				queries.storeTransaction.run(transaction);
-
-				// Fetch the transaction ID.
-				transaction.transactionId = queries.getTransactionByHash.get(transaction).transaction_id;
-
-				// Link transaction to block.
-				queries.linkBlockTransaction.run({ ...block, ...transaction });
-
-				//
-				debug.timer2("SQL: storeTransaction + getTransactionByHash");
-
-				// Initilalize an empty account object.
-				let account = {};
-
-				// Decode the account name and number.
-				account.name = registrationParts[0].toString();
-				account.number = block.height - protocol.blockModifier;
-
-				// Store the transaction on the account for future reference.
-				account.transaction = transaction;
-
-				// 3b) Validating that it has a valid account name.
-				if(!protocol.nameRegexp.test(account.name))
-				{
-					// Log into the database why this registration is invalid.
-					queries.invalidateRegistration.run({ ...transaction, ...{ errorTypeId: protocol.errors.INVALID_NAME} });
-
-					debug.action('Discarding [' + transaction.hashHex + ']: Invalid account name.');
-					continue;
-				}
-
-				// 4a) Validating that there exist at least one payload information
-				if(registrationParts.length <= 1)
-				{
-					// Log into the database why this registration is invalid.
-					queries.invalidateRegistration.run({ ...transaction, ...{ errorTypeId: protocol.errors.MISSING_PAYLOAD} });
-
-					debug.action('Discarding [' + transaction.hashHex + ']: Missing payload information.');
-					continue;
-				}
-
-				account.payloads = [];
-
-				let payloadIndex = 0;
-				while(++payloadIndex < registrationParts.length)
-				{
-					let payload =
-					{
-						type: registrationParts[payloadIndex].readUInt8(0),
-						name: null,
-						data: registrationParts[payloadIndex].slice(1),
-						address: null
-					};
-
-					// If this is a known payload type..
-					if(typeof protocol.payloadTypes[payload.type] !== 'undefined')
-					{
-						payload.name = protocol.payloadTypes[payload.type].name;
-
-						// 4b) Validate length of known payload data.
-						if(payload.data.length != protocol.payloadTypes[payload.type].length)
+						// Check if this output starts with an OP_RETURN opcode.
+						if(currentOuput.scriptPubKey.hex.startsWith('6a'))
 						{
-							// Log into the database why this registration is invalid.
-							queries.invalidateRegistration.run({ ...transaction, ...{ errorTypeId: protocol.errors.INVALID_PAYLOAD_LENGTH} });
-
-							debug.action('Ignoring [' + transaction.hashHex + '] Payment [' + payloadIndex + ']: Invalid payload length.');
-							continue;
-						}
-
-						// 4c) decode structure of known payload data.
-						switch(payload.type)
-						{
-							// Type: Key Hash
-							case 1:
-							{
-								payload.address = new bch.Address(payload.data, 'livenet', 'pubkeyhash').toCashAddress();
-								break;
-							}
-							// Type: Script Hash
-							case 2:
-							{
-								payload.address = new bch.Address(payload.data, 'livenet', 'scripthash').toCashAddress();
-								break;
-							}
-							// Type: Payment Code
-							case 3:
-							{
-								payload.address = bch.encoding.Base58Check.encode(Buffer.concat([ Buffer.from('47', 'hex'), payload.data ]));
-								break;
-							}
-							// Type: Stealth Keys
-							case 4:
-							{
-							}
+							// Increase the counter and store a link to this output.
+							opReturnCount += 1;
+							opReturnIndex = outputIndex;
 						}
 					}
 
-					// Store this payload in the account.
-					account.payloads.push(payload);
+					//
+					debug.timer2("NJS: Evaluated outputs for OP_RETURN");
+
+					// 2a) Validate that there exist at least one OP_RETURN output.
+					if(opReturnCount == 0)
+					{
+						debug.silent('Discarding [' + transaction.hashHex + ']: Missing OP_RETURN output.');
+						continue;
+					}
+
+					// 2b) Validating that there exist no more than a single OP_RETURN output.
+					if(opReturnCount > 1)
+					{
+						debug.action('Discarding [' + transaction.hashHex + ']: Multiple OP_RETURN outputs.');
+						continue;
+					}
+
+					// 3a) Validating that it has a protocol identifier
+					if(!rawTransaction.vout[opReturnIndex].scriptPubKey.hex.startsWith('6a0401010101'))
+					{
+						debug.silent('Discarding [' + transaction.hashHex + ']: Invalid protocol identifier.');
+						continue;
+					}
+
+					// If configured to store transaction body and inclusion proofs..
+					if(config.server.storage >= 2)
+					{
+						// Store the transaction data.
+						transaction.body = Buffer.from(rawTransaction.hex, 'hex');
+
+						// Get the transaction inclusion proof.
+						let rawOutputProof = await rpc.getTxoutProof([ transaction.hashHex ], block.hashHex);
+
+						// Store the inclusion proof on the transaction.
+						transaction.proof = Buffer.from(rawOutputProof, 'hex');
+					}
+
+					// Store the remainder of the transaction hex, after discarding the OP_RETURN and PROTOCOL IdENTIFIER push.
+					let registration = Buffer.from(rawTransaction.vout[opReturnIndex].scriptPubKey.hex, 'hex').slice(6);
+					let registrationParts = [];
+
+					//
+					debug.timer2("-");
+
+					// While there is still data in the output..
+					while(registration.length > 1)
+					{
+						// Initialize default push and drop lengths.
+						let pushLength = 0;
+						let dropLength = 1;
+
+						// Read the current opCode.
+						let opCode = registration.readUInt8(0);
+
+						// Determine the length of the pushed data and control codes.
+						if(opCode <= 75) { pushLength = opCode; }
+						if(opCode == 76) { pushLength = registration.readUInt8(1);    dropLength += 1; }
+						if(opCode == 77) { pushLength = registration.readUInt16BE(1); dropLength += 2; }
+						if(opCode == 78) { pushLength = registration.readUInt32BE(1); dropLength += 4; }
+
+						// Remove the control codes.
+						registration = registration.slice(dropLength);
+
+						// Read and remove the pushlength if more than 0.
+						if(pushLength > 0)
+						{
+							// Push the value to the parts array.
+							registrationParts.push(registration.slice(0, pushLength));
+
+							// Remove the value data.
+							registration = registration.slice(pushLength);
+						}
+					}
+
+					//
+					debug.timer2("NJS: Parsed OP_RETURN structure");
+
+					// Store the transaction so we can reference it in validity status.
+					queries.storeTransaction.run(transaction);
+
+					// Fetch the transaction ID.
+					transaction.transactionId = queries.getTransactionByHash.get(transaction).transaction_id;
+
+					// Link transaction to block.
+					queries.linkBlockTransaction.run({ ...block, ...transaction });
+
+					//
+					debug.timer2("SQL: storeTransaction + getTransactionByHash");
+
+					// Initilalize an empty account object.
+					let account = {};
+
+					// Decode the account name and number.
+					account.name = registrationParts[0].toString();
+					account.number = block.height - protocol.blockModifier;
+
+					// Store the transaction on the account for future reference.
+					account.transaction = transaction;
+
+					// 3b) Validating that it has a valid account name.
+					if(!protocol.nameRegexp.test(account.name))
+					{
+						// Log into the database why this registration is invalid.
+						queries.invalidateRegistration.run({ ...transaction, ...{ errorTypeId: protocol.errors.INVALID_NAME} });
+
+						debug.action('Discarding [' + transaction.hashHex + ']: Invalid account name.');
+						continue;
+					}
+
+					// 4a) Validating that there exist at least one payload information
+					if(registrationParts.length <= 1)
+					{
+						// Log into the database why this registration is invalid.
+						queries.invalidateRegistration.run({ ...transaction, ...{ errorTypeId: protocol.errors.MISSING_PAYLOAD} });
+
+						debug.action('Discarding [' + transaction.hashHex + ']: Missing payload information.');
+						continue;
+					}
+
+					account.payloads = [];
+
+					let payloadIndex = 0;
+					while(++payloadIndex < registrationParts.length)
+					{
+						let payload =
+						{
+							type: registrationParts[payloadIndex].readUInt8(0),
+							name: null,
+							data: registrationParts[payloadIndex].slice(1),
+							address: null
+						};
+
+						// If this is a known payload type..
+						if(typeof protocol.payloadTypes[payload.type] !== 'undefined')
+						{
+							payload.name = protocol.payloadTypes[payload.type].name;
+
+							// 4b) Validate length of known payload data.
+							if(payload.data.length != protocol.payloadTypes[payload.type].length)
+							{
+								// Log into the database why this registration is invalid.
+								queries.invalidateRegistration.run({ ...transaction, ...{ errorTypeId: protocol.errors.INVALID_PAYLOAD_LENGTH} });
+
+								debug.action('Ignoring [' + transaction.hashHex + '] Payment [' + payloadIndex + ']: Invalid payload length.');
+								continue;
+							}
+
+							// 4c) decode structure of known payload data.
+							switch(payload.type)
+							{
+								// Type: Key Hash
+								case 1:
+								{
+									payload.address = new bch.Address(payload.data, 'livenet', 'pubkeyhash').toCashAddress();
+									break;
+								}
+								// Type: Script Hash
+								case 2:
+								{
+									payload.address = new bch.Address(payload.data, 'livenet', 'scripthash').toCashAddress();
+									break;
+								}
+								// Type: Payment Code
+								case 3:
+								{
+									payload.address = bch.encoding.Base58Check.encode(Buffer.concat([ Buffer.from('47', 'hex'), payload.data ]));
+									break;
+								}
+								// Type: Stealth Keys
+								case 4:
+								{
+								}
+							}
+						}
+
+						// Store this payload in the account.
+						account.payloads.push(payload);
+					}
+
+					// Store this account in the block.
+					block.accounts.push(account);
+
+					debug.action("Valid registration [" + transaction.hashHex + "]");
+					debug.object(account);
 				}
-
-				// Store this account in the block.
-				block.accounts.push(account);
-
-				debug.action("Valid registration [" + transaction.hashHex + "]");
-				debug.object(account);
+				catch(error)
+				{
+					console.log('Parsing failed:', error);
+					process.exit();
+				}
 			}
-			catch(error)
-			{
-				console.log('Parsing failed:', error);
-				process.exit();
-			}
+		}
+		catch(error)
+		{
+			//console.log('Could not get block:', error);
+			break;
 		}
 
 		//

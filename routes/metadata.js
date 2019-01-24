@@ -17,7 +17,7 @@ const config = require("../config.js");
 const bitcoinCashRPC = require('bitcoin-cash-rpc');
 
 // Connect to the full node.
-const rpc = new bitcoinCashRPC(config.node.address, config.node.user, config.node.pass, config.node.port, 5000);
+const rpc = new bitcoinCashRPC(config.node.address, config.node.user, config.node.pass, config.node.port, 5000, false);
 
 // Enable support for filesystem operations.
 const filesystem = require('fs');
@@ -110,11 +110,18 @@ router.get('/:accountNumber/:accountName/:accountHash?', async function (req, re
 				payment: [],
 			}
 
-			// Parse payment information.
-			let paymentInformation =
+			if(typeof result[resultIndex].payload_type != 'undefined' && typeof protocol.payloadTypes[result[resultIndex].payload_type] != 'undefined')
 			{
-				type: protocol.payloadTypes[result[resultIndex].payload_type].name,
-				address: result[resultIndex].payload_address,
+				console.log(result[resultIndex]);
+				// Parse payment information.
+				let paymentInformation =
+				{
+					type: protocol.payloadTypes[result[resultIndex].payload_type].name,
+					address: result[resultIndex].payload_address,
+				}
+
+				// Add this payment information to the account.
+				accounts[account_id].payment.push(paymentInformation);
 			}
 
 			// Assign the account to the list of accounts if needed.
@@ -122,9 +129,6 @@ router.get('/:accountNumber/:accountName/:accountHash?', async function (req, re
 			{
 				accounts[account_id] = account;
 			}
-
-			// Add this payment information to the account.
-			accounts[account_id].payment.push(paymentInformation);
 		}
 
 		// If more than one account was matched..

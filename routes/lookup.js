@@ -17,7 +17,7 @@ const config = require("../config.js");
 const bitcoinCashRPC = require('bitcoin-cash-rpc');
 
 // Connect to the full node.
-const rpc = new bitcoinCashRPC(config.node.address, config.node.user, config.node.pass, config.node.port, 5000);
+const rpc = new bitcoinCashRPC(config.node.address, config.node.user, config.node.pass, config.node.port, 5000, false);
 
 // Enable support for filesystem operations.
 const filesystem = require('fs');
