@@ -132,8 +132,6 @@ router.get('/:accountNumber/:accountName/:accountHash?', async function (req, re
 
 			if(typeof result[resultIndex].payload_type != 'undefined' && typeof protocol.payloadTypes[result[resultIndex].payload_type] != 'undefined')
 			{
-				console.log(result[resultIndex]);
-
 				// Parse payment information.
 				let paymentInformation =
 				{

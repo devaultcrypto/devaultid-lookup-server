@@ -15,6 +15,7 @@ app.set('json spaces', 2);
 
 // Create routes from separate files.
 app.use('/newblock', require('./routes/parser.js'));
+app.use('/status', require('./routes/status.js'));
 app.use('/lookup', require('./routes/lookup.js'));
 app.use('/account', require('./routes/metadata.js'));
 //app.use('/register', require('./routes/register.js'));
