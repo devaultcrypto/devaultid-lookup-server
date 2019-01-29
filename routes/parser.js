@@ -1,47 +1,6 @@
-// Enable support for configurable debugging.
-const debug =
-{
-	struct: require('debug')('calus:struct'),
-	status: require('debug')('calus:status'),
-	blocks: require('debug')('calus:blocks'),
-	action: require('debug')('calus:action'),
-	result: require('debug')('calus:result'),
-	object: require('debug')('calus:object'),
-	silent: require('debug')('calus:silent'),
-
-	timer1: require('debug')('calus:timer1'),
-	timer2: require('debug')('calus:timer2'),
-	timer3: require('debug')('calus:timer3'),
-	timer4: require('debug')('calus:timer4'),
-	timer5: require('debug')('calus:timer5'),
-	timer6: require('debug')('calus:timer6'),
-}
-
-// Enable status by default.
-debug.status.enabled = true;
-debug.blocks.enabled = true;
-debug.result.enabled = true;
-
-// Issue an initial debug message so we can measure loading times.
-debug.struct('Started application.');
-
-// Read the configuration file.
-const config = require("../config.js");
-
-// Enable support for filesystem operations.
-const filesystem = require('fs');
-
-// Enable support for cryptographic functions.
-const crypto = require('crypto');
-
-// Enable the bitcore-lib-cash library functions.
-const bch = require('bitcore-lib-cash');
-
-// Enable support for sqlite databases.
-const Database = require('better-sqlite3');
-
-// Enable RPC connections.
-const bchRPC = require('bitcoin-cash-rpc');
+// Enable support for Express apps
+const express = require('express');
+const router = express.Router();
 
 // Helper function that allows deep assignments without need to create intermediate empty objects.
 deepSet = (input) => 
@@ -55,144 +14,13 @@ deepSet = (input) =>
 	return new Proxy(input, handler);
 };
 
-// 
-debug.struct('Loaded dependencies.');
-
-//
-const rpc = new bchRPC(config.node.address, config.node.user, config.node.pass, config.node.port, 5000, false);
-
-debug.status('Connected to RPC node');
-
-// Open the database in read-write mode.
-const sql = new Database(config.server.database, { memory: false, readonly: false });
-
-// 
-debug.status('Opened database.');
-
-// Enable support for foreign keys.
-sql.pragma('foreign_keys = ON');
-
-// Use up to 128mb memory as cache.
-//sql.pragma('cache_size = 32768');
-
-// At the risk of database corruption, don't wait for filesystem.
-sql.pragma('synchronous = OFF');
-
-// Allow the database to lock the database file on the operating system level.
-//sql.pragma('locking_mode = EXCLUSIVE');
-
-// Allow the database to keep the journal file when not in use, to prevent re-creating it repeatadly.
-sql.pragma('journal_mode = TRUNCATE');
-
-//
-debug.timer3('Preparing database schema.');
-
-// Load the database schema.
-const databaseSchema = filesystem.readFileSync('sql/database_schema.sql', 'utf8').trim();
-
-// Create the database schema.
-sql.exec(databaseSchema);
-
-//
-debug.timer3('Completed database schema.');
-//
-debug.timer3('Preparing database queries.');
-
-// Load the available database queries.
-const queries =
-{
-	// Block related queries.
-	getBlockByHash:				sql.prepare(filesystem.readFileSync('sql/query_get_block_by_hash.sql', 'utf8').trim()),
-	storeBlock:					sql.prepare(filesystem.readFileSync('sql/query_store_block.sql', 'utf8').trim()),
-	linkBlock:					sql.prepare(filesystem.readFileSync('sql/query_link_block.sql', 'utf8').trim()),
-
-	// Transaction related queries.
-	storeTransaction:			sql.prepare(filesystem.readFileSync('sql/query_store_transaction.sql', 'utf8').trim()),
-	getTransactionByHash:		sql.prepare(filesystem.readFileSync('sql/query_get_transaction_by_hash.sql', 'utf8').trim()),
-	linkBlockTransaction:		sql.prepare(filesystem.readFileSync('sql/query_link_block_transaction.sql', 'utf8').trim()),
-
-	// Payload related queries.
-	getPayload:					sql.prepare(filesystem.readFileSync('sql/query_get_payload.sql', 'utf8').trim()),
-	storePayload:				sql.prepare(filesystem.readFileSync('sql/query_store_payload.sql', 'utf8').trim()),
-	linkAccountPayload:			sql.prepare(filesystem.readFileSync('sql/query_link_account_payload.sql', 'utf8').trim()),
-
-	// Account related queries.
-	storeAccount:				sql.prepare(filesystem.readFileSync('sql/query_store_account.sql', 'utf8').trim()),
-	getAccountByTransactionId:	sql.prepare(filesystem.readFileSync('sql/query_get_account_by_transaction_id.sql', 'utf8').trim()),
-
-	//
-	storeName:					sql.prepare(filesystem.readFileSync('sql/query_store_name.sql', 'utf8').trim()),
-	getName:					sql.prepare(filesystem.readFileSync('sql/query_get_name.sql', 'utf8').trim()),
-
-	// Other queries.
-	invalidateRegistration:		sql.prepare(filesystem.readFileSync('sql/query_invalidate_registration.sql', 'utf8').trim()),
-	getServiceStatus:			sql.prepare(filesystem.readFileSync('sql/query_get_service_status.sql', 'utf8').trim()),
-	updateServiceStatus:		sql.prepare(filesystem.readFileSync('sql/query_update_service_status.sql', 'utf8').trim()),
-	updateChainTip:				sql.prepare(filesystem.readFileSync('sql/query_update_chain_tip.sql', 'utf8').trim()),
-}
-
-//
-debug.timer3('Finished preparing database queries.');
-
-// 
-debug.struct('Initialized database schema.');
-
-const protocol =
-{
-	blockModifier: 563620,
-	nameRegexp: /[a-zA-Z0-9_]{1,99}/,
-	payloadTypes:
-	{
-		1: { name: 'Key Hash', length: 20 },
-		2: { name: 'Script Hash', length: 20 },
-		3: { name: 'Payment Code', length: 80 },
-		4: { name: 'Stealth Keys', length: 66 }
-	},
-	emojiCodepoints: [ 128123, 128018, 128021, 128008, 128014, 128004, 128022, 128016, 128042, 128024, 128000, 128007, 128063, 129415, 128019, 128039, 129414, 129417, 128034, 128013, 128031, 128025, 128012, 129419, 128029, 128030, 128375, 127803, 127794, 127796, 127797, 127809, 127808, 127815, 127817, 127819, 127820, 127822, 127826, 127827, 129373, 129381, 129365, 127805, 127798, 127812, 129472, 129370, 129408, 127850, 127874, 127853, 127968, 128663, 128690, 9973, 9992, 128641, 128640, 8986, 9728, 11088, 127752, 9730, 127880, 127872, 9917, 9824, 9829, 9830, 9827, 128083, 128081, 127913, 128276, 127925, 127908, 127911, 127928, 127930, 129345, 128269, 128367, 128161, 128214, 9993, 128230, 9999, 128188, 128203, 9986, 128273, 128274, 128296, 128295, 9878, 9775, 128681, 128099, 127838 ],
-	errors:
-	{
-		INVALID_NAME: 1,
-		MISSING_PAYLOAD: 2,
-		INVALID_PAYLOAD_LENGTH: 3
-	}
-}
-
-//
-const calculateAccountIdentity = function(blockhash, transactionhash)
-{
-	// Step 1: Concatenate the block hash with the transaction hash
-	let account_hash_step1 = Buffer.concat([blockhash, transactionhash]);;
-
-	// Step 2: Hash the results of the concatenation with sha256
-	let account_hash_step2 = crypto.createHash('sha256').update(account_hash_step1).digest();
-
-	// Step 3: Take the first and last four bytes and discard the rest
-	let account_hash_step3 = account_hash_step2.slice(0, 4);
-	let account_emoji_step3 = account_hash_step2.slice(28, 32);
-
-	// Step 4a: Convert to decimal notation and store as a string
-	let account_hash_step4 = account_hash_step3.readUInt32BE(0).toString(10);
-
-	// Step 4b: Select an emoji from the emojiHexList
-	let emoji_index = account_emoji_step3.readUInt32BE(0) % 100;
-
-	// Step 5: Reverse the the string so the last number is first
-	let account_hash_step5 = account_hash_step4.toString().split("").reverse().join("").padEnd(10, '0');
-
-	// Step 5b: calculate the integer codepoint for the emoji
-	let emoji_codepoint = protocol.emojiCodepoints[emoji_index];
-	
-	// Return the final account identity.
-	return { collisionHash: account_hash_step5, accountEmoji: emoji_codepoint };
-};
-
 // Set initial parsing state.
 var parserState = null;
 
 // Wrap the parsing function in an async function.
 const parseBlock = async function (req, res)
 {
-	debug.timer6('Got notified of new block(s).');
+	req.app.locals.debug.timer6('Got notified of new block(s).');
 
 	// Return OK if we're already indexing.
 	if(parserState)
@@ -208,14 +36,14 @@ const parseBlock = async function (req, res)
 	while(iterations--)
 	{
 		// Find a blockheight to request.
-		let getServiceStatusResult = queries.getServiceStatus.get();
+		let getServiceStatusResult = req.app.locals.queries.getServiceStatus.get();
 
 		//
-		debug.struct('Loaded indexing service state.');
-		debug.object(getServiceStatusResult);
+		req.app.locals.debug.struct('Loaded indexing service state.');
+		req.app.locals.debug.object(getServiceStatusResult);
 
-		debug.timer1("Starting to parse block");
-		debug.timer2("-");
+		req.app.locals.debug.timer1("Starting to parse block");
+		req.app.locals.debug.timer2("-");
 
 		// Initialize an empty block object.
 		let block = 
@@ -241,7 +69,11 @@ const parseBlock = async function (req, res)
 		try
 		{
 			// Request the current blocks hash from the RPC node.
-			let getBlockHashResult = await rpc.getBlockHash(block.height);
+			let getBlockHashResult = await req.app.locals.rpc.getBlockHash(block.height);
+
+			//
+			req.app.locals.debug.timer2("RPC: getBlockHash");
+			req.app.locals.debug.object(getBlockHashResult);
 
 			// Check if the block was valid.
 			if(typeof getBlockHashResult != 'string')
@@ -250,7 +82,7 @@ const parseBlock = async function (req, res)
 				if(getBlockHashResult.error.code == -8)
 				{
 					//
-					debug.silent('Requested a block height that does not yet exist.');
+					req.app.locals.debug.silent('Requested a block height that does not yet exist.');
 
 					// break the while loop.
 					break;
@@ -261,32 +93,26 @@ const parseBlock = async function (req, res)
 			block.hashHex = getBlockHashResult;
 			block.hash = Buffer.from(block.hashHex, 'hex');
 
-			//
-			debug.timer2("RPC: getBlockHash");
-
 			// Store the block in the database (if necessary)
-			queries.storeBlock.run(block);
+			req.app.locals.queries.storeBlock.run(block);
 
 			//
-			debug.timer2("SQL: storeBlock");
-
-			// Load the block and its parent from the database.
-			let getCurrentBlockResult = queries.getBlockByHash.get(block);
-			let getParentBlockResult = queries.getBlockByHash.get(block);
-
-			//
-			debug.timer2("SQL: getBlockByHash (current and parent)");
+			req.app.locals.debug.timer2("SQL: storeBlock");
+			req.app.locals.debug.object(block);
 
 			// Link the block to its parent.
-			queries.linkBlock.run(block);
+			req.app.locals.queries.linkBlock.run(block);
 
 			//
-			debug.timer2("SQL: linkBlock");
+			req.app.locals.debug.timer2("SQL: linkBlock");
+			req.app.locals.debug.object(block);
+
+			let newBlock = await req.app.locals.rpc.getBlock(block.hashHex, true, true);
 
 			//
-			debug.blocks('Parsing block #' + block.height + ' [' + block.hashHex + ']');
+			req.app.locals.debug.blocks('Parsing block #' + block.height + ' [' + block.hashHex + ']');
+			req.app.locals.debug.object(newBlock);
 
-			let newBlock = await rpc.getBlock(block.hashHex, true, true);
 			let transactionList = newBlock.tx;
 
 			/*
@@ -311,16 +137,16 @@ const parseBlock = async function (req, res)
 				transaction.body = null;
 
 				//
-				debug.struct("Transaction [" + transaction.hashHex + "]");
-				debug.timer2("-");
+				req.app.locals.debug.struct("Transaction [" + transaction.hashHex + "]");
+				req.app.locals.debug.timer2("-");
 
 				try
 				{
 					// Get the raw transaction.
-					let rawTransaction = await rpc.getRawTransaction(transaction.hashHex, 1);
+					let rawTransaction = await req.app.locals.rpc.getRawTransaction(transaction.hashHex, 1);
 
 					//
-					debug.timer2("RPC: getRawTransaction");
+					req.app.locals.debug.timer2("RPC: getRawTransaction");
 
 					// Initialize control parameters to measure OP_RETURN outputs.
 					let opReturnCount = 0;
@@ -342,37 +168,37 @@ const parseBlock = async function (req, res)
 					}
 
 					//
-					debug.timer2("NJS: Evaluated outputs for OP_RETURN");
+					req.app.locals.debug.timer2("NJS: Evaluated outputs for OP_RETURN");
 
 					// 2a) Validate that there exist at least one OP_RETURN output.
 					if(opReturnCount == 0)
 					{
-						debug.silent('Discarding [' + transaction.hashHex + ']: Missing OP_RETURN output.');
+						req.app.locals.debug.silent('Discarding [' + transaction.hashHex + ']: Missing OP_RETURN output.');
 						continue;
 					}
 
 					// 2b) Validating that there exist no more than a single OP_RETURN output.
 					if(opReturnCount > 1)
 					{
-						debug.action('Discarding [' + transaction.hashHex + ']: Multiple OP_RETURN outputs.');
+						req.app.locals.debug.action('Discarding [' + transaction.hashHex + ']: Multiple OP_RETURN outputs.');
 						continue;
 					}
 
 					// 3a) Validating that it has a protocol identifier
 					if(!rawTransaction.vout[opReturnIndex].scriptPubKey.hex.startsWith('6a0401010101'))
 					{
-						debug.silent('Discarding [' + transaction.hashHex + ']: Invalid protocol identifier.');
+						req.app.locals.debug.silent('Discarding [' + transaction.hashHex + ']: Invalid protocol identifier.');
 						continue;
 					}
 
 					// If configured to store transaction body and inclusion proofs..
-					if(config.server.storage >= 2)
+					if(req.app.locals.config.server.storage >= 2)
 					{
 						// Store the transaction data.
 						transaction.body = Buffer.from(rawTransaction.hex, 'hex');
 
 						// Get the transaction inclusion proof.
-						let rawOutputProof = await rpc.getTxoutProof([ transaction.hashHex ], block.hashHex);
+						let rawOutputProof = await req.app.locals.rpc.getTxoutProof([ transaction.hashHex ], block.hashHex);
 
 						// Store the inclusion proof on the transaction.
 						transaction.proof = Buffer.from(rawOutputProof, 'hex');
@@ -383,7 +209,7 @@ const parseBlock = async function (req, res)
 					let registrationParts = [];
 
 					//
-					debug.timer2("-");
+					req.app.locals.debug.timer2("-");
 
 					// While there is still data in the output..
 					while(registration.length > 1)
@@ -416,37 +242,37 @@ const parseBlock = async function (req, res)
 					}
 
 					//
-					debug.timer2("NJS: Parsed OP_RETURN structure");
+					req.app.locals.debug.timer2("NJS: Parsed OP_RETURN structure");
 
 					// Store the transaction so we can reference it in validity status.
-					queries.storeTransaction.run(transaction);
+					req.app.locals.queries.storeTransaction.run(transaction);
 
 					// Fetch the transaction ID.
-					transaction.transactionId = queries.getTransactionByHash.get(transaction).transaction_id;
+					transaction.transactionId = req.app.locals.queries.getTransactionByHash.get(transaction).transaction_id;
 
 					// Link transaction to block.
-					queries.linkBlockTransaction.run({ ...block, ...transaction });
+					req.app.locals.queries.linkBlockTransaction.run({ ...block, ...transaction });
 
 					//
-					debug.timer2("SQL: storeTransaction + getTransactionByHash");
+					req.app.locals.debug.timer2("SQL: storeTransaction + getTransactionByHash");
 
 					// Initilalize an empty account object.
 					let account = {};
 
 					// Decode the account name and number.
 					account.name = registrationParts[0].toString();
-					account.number = block.height - protocol.blockModifier;
+					account.number = block.height - req.app.locals.protocol.blockModifier;
 
 					// Store the transaction on the account for future reference.
 					account.transaction = transaction;
 
 					// 3b) Validating that it has a valid account name.
-					if(!protocol.nameRegexp.test(account.name))
+					if(!req.app.locals.protocol.nameRegexp.test(account.name))
 					{
 						// Log into the database why this registration is invalid.
-						queries.invalidateRegistration.run({ ...transaction, ...{ errorTypeId: protocol.errors.INVALID_NAME} });
+						req.app.locals.queries.invalidateRegistration.run({ ...transaction, ...{ errorTypeId: req.app.locals.protocol.errors.INVALID_NAME} });
 
-						debug.action('Discarding [' + transaction.hashHex + ']: Invalid account name.');
+						req.app.locals.debug.action('Discarding [' + transaction.hashHex + ']: Invalid account name.');
 						continue;
 					}
 
@@ -454,9 +280,9 @@ const parseBlock = async function (req, res)
 					if(registrationParts.length <= 1)
 					{
 						// Log into the database why this registration is invalid.
-						queries.invalidateRegistration.run({ ...transaction, ...{ errorTypeId: protocol.errors.MISSING_PAYLOAD} });
+						req.app.locals.queries.invalidateRegistration.run({ ...transaction, ...{ errorTypeId: req.app.locals.protocol.errors.MISSING_PAYLOAD} });
 
-						debug.action('Discarding [' + transaction.hashHex + ']: Missing payload information.');
+						req.app.locals.debug.action('Discarding [' + transaction.hashHex + ']: Missing payload information.');
 						continue;
 					}
 
@@ -474,17 +300,17 @@ const parseBlock = async function (req, res)
 						};
 
 						// If this is a known payload type..
-						if(typeof protocol.payloadTypes[payload.type] !== 'undefined')
+						if(typeof req.app.locals.protocol.payloadTypes[payload.type] !== 'undefined')
 						{
-							payload.name = protocol.payloadTypes[payload.type].name;
+							payload.name = req.app.locals.protocol.payloadTypes[payload.type].name;
 
 							// 4b) Validate length of known payload data.
-							if(payload.data.length != protocol.payloadTypes[payload.type].length)
+							if(payload.data.length != req.app.locals.protocol.payloadTypes[payload.type].length)
 							{
 								// Log into the database why this registration is invalid.
-								queries.invalidateRegistration.run({ ...transaction, ...{ errorTypeId: protocol.errors.INVALID_PAYLOAD_LENGTH} });
+								req.app.locals.queries.invalidateRegistration.run({ ...transaction, ...{ errorTypeId: req.app.locals.protocol.errors.INVALID_PAYLOAD_LENGTH} });
 
-								debug.action('Ignoring [' + transaction.hashHex + '] Payment [' + payloadIndex + ']: Invalid payload length.');
+								req.app.locals.debug.action('Ignoring [' + transaction.hashHex + '] Payment [' + payloadIndex + ']: Invalid payload length.');
 								continue;
 							}
 
@@ -494,19 +320,19 @@ const parseBlock = async function (req, res)
 								// Type: Key Hash
 								case 1:
 								{
-									payload.address = new bch.Address(payload.data, 'livenet', 'pubkeyhash').toCashAddress();
+									payload.address = new req.app.locals.bch.Address(payload.data, 'livenet', 'pubkeyhash').toCashAddress();
 									break;
 								}
 								// Type: Script Hash
 								case 2:
 								{
-									payload.address = new bch.Address(payload.data, 'livenet', 'scripthash').toCashAddress();
+									payload.address = new req.app.locals.bch.Address(payload.data, 'livenet', 'scripthash').toCashAddress();
 									break;
 								}
 								// Type: Payment Code
 								case 3:
 								{
-									payload.address = bch.encoding.Base58Check.encode(Buffer.concat([ Buffer.from('47', 'hex'), payload.data ]));
+									payload.address = req.app.locals.bch.encoding.Base58Check.encode(Buffer.concat([ Buffer.from('47', 'hex'), payload.data ]));
 									break;
 								}
 								// Type: Stealth Keys
@@ -523,8 +349,8 @@ const parseBlock = async function (req, res)
 					// Store this account in the block.
 					block.accounts.push(account);
 
-					debug.action("Valid registration [" + transaction.hashHex + "]");
-					debug.object(account);
+					req.app.locals.debug.action("Valid registration [" + transaction.hashHex + "]");
+					req.app.locals.debug.object(account);
 				}
 				catch(error)
 				{
@@ -540,26 +366,26 @@ const parseBlock = async function (req, res)
 		}
 
 		//
-		debug.timer1("Completed parsing block");
-		debug.timer2("Starting to handle registrations");
+		req.app.locals.debug.timer1("Completed parsing block");
+		req.app.locals.debug.timer2("Starting to handle registrations");
 
 		// Validation and processing of the block is complete, time to store the data into the database.
 		{
 			// Calculate collision information.
 			{
-				debug.timer4("Begin collisions calculation.");
+				req.app.locals.debug.timer4("Begin collisions calculation.");
 
 				// Set up a collision table.
 				let collisionTable = {};
 
-				debug.timer4("Populate collision table.");
+				req.app.locals.debug.timer4("Populate collision table.");
 
 				// Populate the collision table.
 				for(accountIndex in block.accounts)
 				{
 					// Local copy for code legibility.
 					let account = block.accounts[accountIndex];
-					let accountIdentity = calculateAccountIdentity(block.hash, account.transaction.hash);
+					let accountIdentity = req.app.locals.protocol.calculateAccountIdentity(block.hash, account.transaction.hash);
 
 					block.accounts[accountIndex].collisionHash = accountIdentity.collisionHash;
 					block.accounts[accountIndex].emoji = String.fromCodePoint(accountIdentity.accountEmoji);
@@ -568,7 +394,7 @@ const parseBlock = async function (req, res)
 					deepSet(collisionTable)[account.name.toLowerCase()][accountIdentity.collisionHash] = accountIdentity.collisionHash;
 				}
 
-				debug.timer4("Calculate shortest identifier.");
+				req.app.locals.debug.timer4("Calculate shortest identifier.");
 
 				// Calculate the shortest identifiers.
 				for(accountIndex in block.accounts)
@@ -622,7 +448,8 @@ const parseBlock = async function (req, res)
 						block.accounts[accountIndex].collisionLength = 0;
 					}
 				}
-				debug.timer4("Completed collision calculation");
+
+				req.app.locals.debug.timer4("Completed collision calculation");
 			}
 
 			try
@@ -633,44 +460,44 @@ const parseBlock = async function (req, res)
 					// Local copy for code legibility.
 					let account = block.accounts[accountIndex];
 
-					debug.timer5("Starting to store account.");
+					req.app.locals.debug.timer5("Starting to store account.");
 
-					sql.exec('BEGIN TRANSACTION');
+					req.app.locals.sql.exec('BEGIN TRANSACTION');
 					
 					// Store the account and account name
 					{
 						// Store the account name
-						queries.storeName.run(account);
+						req.app.locals.queries.storeName.run(account);
 
 						// Fetch the account name ID.
-						account.nameId = queries.getName.get(account).name_id;
+						account.nameId = req.app.locals.queries.getName.get(account).name_id;
 
 						// Store the account
-						queries.storeAccount.run({ ...account, ...account.transaction });
+						req.app.locals.queries.storeAccount.run({ ...account, ...account.transaction });
 
 						// Fetch the account ID.
-						account.accountId = queries.getAccountByTransactionId.get(account.transaction).account_id;
+						account.accountId = req.app.locals.queries.getAccountByTransactionId.get(account.transaction).account_id;
 					}
 
 					// Store the account payloads.
 					for(payloadIndex in account.payloads)
 					{
 						// Store the account payload
-						queries.storePayload.run(account.payloads[payloadIndex]);
+						req.app.locals.queries.storePayload.run(account.payloads[payloadIndex]);
 
 						// Fetch the payload ID.
-						account.payloads[payloadIndex].payloadId = queries.getPayload.get(account.payloads[payloadIndex]).payload_id;
+						account.payloads[payloadIndex].payloadId = req.app.locals.queries.getPayload.get(account.payloads[payloadIndex]).payload_id;
 
 						// Link the account payload to the account
-						queries.linkAccountPayload.run({ ...account, ...account.payloads[payloadIndex] })
+						req.app.locals.queries.linkAccountPayload.run({ ...account, ...account.payloads[payloadIndex] })
 					}
 
-					sql.exec('COMMIT TRANSACTION');
+					req.app.locals.sql.exec('COMMIT TRANSACTION');
 
-					debug.timer5("Completed storing account.");
+					req.app.locals.debug.timer5("Completed storing account.");
 
 					//
-					debug.result("Stored registration (" + account.emoji + ") " + account.name + "#" + account.number + "." + account.collisionHash);
+					req.app.locals.debug.result("Stored registration (" + account.emoji + ") " + account.name + "#" + account.number + "." + account.collisionHash);
 				}
 			}
 			catch(error)
@@ -681,17 +508,17 @@ const parseBlock = async function (req, res)
 		}
 
 		//
-		debug.timer2("Completed handling registrations");
+		req.app.locals.debug.timer2("Completed handling registrations");
 
 		// Update chaintip
-		queries.updateChainTip.run({ chain_tip: block.height });
+		req.app.locals.queries.updateChainTip.run({ chain_tip: block.height });
 		
 		// Update service status
-		queries.updateServiceStatus.run({ chain_tip: block.height });
+		req.app.locals.queries.updateServiceStatus.run({ chain_tip: block.height });
 	}
 
 	parserState = false;
-	debug.timer6('Completed parsing new block(s).');
+	req.app.locals.debug.timer6('Completed parsing new block(s).');
 	try
 	{
 		return res.status(200).json(null);
@@ -702,27 +529,7 @@ const parseBlock = async function (req, res)
 	}
 };
 
-// Enable support for Express apps
-const express = require('express');
-const router = express.Router();
-
 // Call parseBlock when this route is requested.
 router.get('/', parseBlock);
-
-// ...
-process.on
-(
-	'beforeExit', 
-	function(code)
-	{
-		console.log('Closing the database.');
-
-		// Close the database.
-		sql.close();
-	}
-);
-
-// Parse blocks once on startup.
-parseBlock(null, null);
 
 module.exports = router;
