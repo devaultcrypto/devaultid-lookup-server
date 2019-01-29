@@ -40,6 +40,8 @@ const queries =
 const protocol = 
 {
 	blockModifier: 563620,
+	nameRegexp: /[a-zA-Z0-9_]{1,99}/,
+	hashRegexp: /[0-9]{1,10}/,
 	payloadTypes:
 	{
 		1: { name: 'Key Hash', length: 20 },
@@ -61,6 +63,24 @@ router.get('/:accountNumber/:accountName/:accountHash?', async function (req, re
 
 	//
 	debug.lookup('Registration metadata for ' + lookupIdentifier + ' requested by ' + req.ip);
+
+	// Validate that the account number is in the given range.
+	if(req.params['accountNumber'] && parseInt(req.params['accountNumber']) < 100)
+	{
+		return res.status(400).json({ error: 'The account number is not in the valid range.' });
+	}
+
+	// Validate the account name.
+	if(req.params['accountName'] && !protocol.nameRegexp.test(req.params['accountName']))
+	{
+		return res.status(400).json({ error: 'The account name is not valid.' });
+	}
+
+	// Validate the account hash part, if supplied.
+	if(req.params['accountHash'] && !protocol.hashRegexp.test(req.params['accountHash']))
+	{
+		return res.status(400).json({ error: 'The account hash part is not valid.' });
+	}
 
 	try
 	{
