@@ -1,3 +1,3 @@
 SELECT *
 FROM transactions
-WHERE transaction_hash = :hash
+WHERE transaction_hash = :transactionHash

@@ -8,96 +8,132 @@ const router = express.Router();
 //
 router.get('/:accountNumber/:accountName?/:accountHash?', async function (req, res)
 {
-	//
-	let lookupIdentifier = (req.params['accountName'] ? req.params['accountName'] : '') + '#' + req.params['accountNumber'] + (req.params['accountHash'] ? "." + req.params['accountHash'] : "");
+	// Notify the server admin that a lookup request has been received.
+	req.app.locals.debug.server('Registration transaction(s) requested by ' + req.ip);
+	req.app.locals.debug.struct('Validating lookup request input fields.');
 
-	//
-	req.app.locals.debug.lookup('Registration transaction(s) for ' + lookupIdentifier + ' requested by ' + req.ip);
+	// Initialize an empty response object.
+	let lookupResult = {};
 
 	// Validate that the account number is in the given range.
 	if(req.params['accountNumber'] && parseInt(req.params['accountNumber']) < 100)
 	{
-		return res.status(400).json({ error: 'The account number is not in the valid range.' });
+		lookupResult.error = 'The account number is not in the valid range.';
 	}
 
 	// Validate the account name.
 	if(req.params['accountName'] && !req.app.locals.protocol.nameRegexp.test(req.params['accountName']))
 	{
-		return res.status(400).json({ error: 'The account name is not valid.' });
+		lookupResult.error = 'An optional account name was supplied but is not valid.';
 	}
 
 	// Validate the account hash part, if supplied.
 	if(req.params['accountHash'] && !req.app.locals.protocol.hashRegexp.test(req.params['accountHash']))
 	{
-		return res.status(400).json({ error: 'The account hash part is not valid.' });
+		lookupResult.error = 'An optional account hash part was supplied but is not valid.';
 	}
 
-	// Initialize response object.
-	let lookup =
+	//
+	req.app.locals.debug.struct('Completed validation of lookup request input fields.');
+
+	// If validation failed..
+	if(typeof lookupResult.error != 'undefined')
 	{
-		identifier: lookupIdentifier,
-		block: parseInt(req.params['accountNumber']) + req.app.locals.protocol.blockModifier,
-		results: null
+		// Notify the server admin that this request was invalid.
+		req.app.locals.debug.server('Delivering error message due to invalid request to ' + req.ip);
+		req.app.locals.debug.object(lookupResult);
+
+		// Return a 400 BAD REQUEST response.
+		return res.status(400).json(lookupResult);
 	}
+
+	// Parse lookup identifier.
+	let lookupIdentifier = (req.params['accountName'] ? req.params['accountName'] : '') + '#' + req.params['accountNumber'] + (req.params['accountHash'] ? "." + req.params['accountHash'] : "");
+
+	// Update the response object with the block and account identifier requested.
+	lookupResult.identifier = lookupIdentifier;
+	lookupResult.block = parseInt(req.params['accountNumber']) + req.app.locals.protocol.blockModifier;
 
 	try
 	{
-		let result = null;
+		//
+		req.app.locals.debug.struct('Starting to query database for registration transaction(s) matching ' + lookupIdentifier);
+
+		let databaseLookupResult = null;
 		if(req.params['accountHash'])
 		{
 			// Query the database for the result.
-			result = req.app.locals.queries.lookupByIdentifier.all(req.params);
+			databaseLookupResult = req.app.locals.queries.lookupByIdentifier.all(req.params);
 		}
 		else if(req.params['accountName'])
 		{
 			// Query the database for the result.
-			result = req.app.locals.queries.lookupByName.all(req.params);
+			databaseLookupResult = req.app.locals.queries.lookupByName.all(req.params);
 		}
 		else
 		{
 			// Query the database for the result.
-			result = req.app.locals.queries.lookupByBlock.all(req.params);
+			databaseLookupResult = req.app.locals.queries.lookupByBlock.all(req.params);
 		}
 
+		//
+		req.app.locals.debug.struct('Completed querying database for registration transaction(s) matching ' + lookupIdentifier);
+
 		// If no result could be found..
-		if(typeof result == 'object' && Object.keys(result).length == 0)
+		if(typeof databaseLookupResult == 'object' && Object.keys(databaseLookupResult).length == 0)
 		{
+			// Notify the server admin that this request has no results.
+			req.app.locals.debug.server('Delivering error message due to missing registrations to ' + req.ip);
+
 			// Return 404 eror.
 			return res.status(404).json({ error: 'No account matched the requested parameters.' });
 		}
 
 		// If a hash was provided and more than one result was found..
-		if(req.params['accountHash'] && Object.keys(result).length > 1)
+		if(req.params['accountHash'] && Object.keys(databaseLookupResult).length > 1)
 		{
+			// Notify the server admin that this request was invalid.
+			req.app.locals.debug.server('Delivering error message due to conflicting results to ' + req.ip);
+			req.app.locals.debug.object(databaseLookupResult);
+
 			// Return a 409 Conflict.
 			return res.status(409).json({ error: 'More than one account matched with the requested parameters.' });
 		}
 
 		// If results were found, go over them and..
-		for(resultIndex in result)
+		for(resultIndex in databaseLookupResult)
 		{
+			//
+			req.app.locals.debug.struct('Checking if inclusions proofs and transaction data is cached locally.');
+
 			// .. check if they have a cached transaction and inclusion proof and ..
-			if(!result[resultIndex].inclusion_proof)
+			if(!databaseLookupResult[resultIndex].inclusion_proof)
 			{
+				//
+				req.app.locals.debug.struct('Requesting inclusions proofs and transaction data from RPC node.');
+
 				// .. if the given registration lacks a proof, fetch it from the full node on-demand.
-				result[resultIndex].inclusion_proof = await rpc.getTxoutProof([ result[resultIndex].transaction_hash ], result[resultIndex].block_hash);
-				result[resultIndex].transaction = await rpc.getRawTransaction(result[resultIndex].transaction_hash);
+				databaseLookupResult[resultIndex].inclusion_proof = await req.app.locals.rpc('getTxoutProof', [databaseLookupResult[resultIndex].transaction_hash], databaseLookupResult[resultIndex].block_hash);
+				databaseLookupResult[resultIndex].transaction = await req.app.locals.rpc('getRawTransaction', databaseLookupResult[resultIndex].transaction_hash);
+
+				//
+				req.app.locals.debug.struct('Received inclusions proofs and transaction data from RPC node.');
 			}
 
 			// Remove the block and transaction hash from the result set.
-			delete result[resultIndex].block_hash;
-			delete result[resultIndex].transaction_hash;
+			delete databaseLookupResult[resultIndex].block_hash;
+			delete databaseLookupResult[resultIndex].transaction_hash;
 		}
 
 		// Add the final data to the result of the response object.
-		lookup.results = result;
+		lookupResult.results = databaseLookupResult;
 
-		// 
-		req.app.locals.debug.lookup('Registration transaction(s) for ' + lookupIdentifier + ' delivered to ' + req.ip);
-		req.app.locals.debug.object(lookup);
+		// Notify the server admin that the request has been processed.
+		req.app.locals.debug.server('Registration transaction(s) for ' + lookupIdentifier + ' delivered to ' + req.ip);
+		req.app.locals.debug.object(lookupResult);
 
 		// Return a 200 OK with the lookup result.
-		return res.status(200).json(lookup);
+		return res.status(200).json(lookupResult);
 	}
 	catch(error)
 	{

@@ -5,11 +5,14 @@ const router = express.Router();
 //
 router.get('/', async function (req, res)
 {
-	//
-	req.app.locals.debug.status('Service status requested by ' + req.ip);
+	// Notify the server admin that a lookup request has been received.
+	req.app.locals.debug.server('Service status requested by ' + req.ip);
 
 	try
 	{
+		//
+		req.app.locals.debug.struct('Querying database for service status.');
+
 		// Query the database for the result.
 		let result = req.app.locals.queries.getStatus.get();
 
@@ -30,7 +33,8 @@ router.get('/', async function (req, res)
 		}
 
 		// 
-		req.app.locals.debug.status('Service status delivered to ' + req.ip);
+		req.app.locals.debug.struct('Completed querying database for service status.');
+		req.app.locals.debug.server('Service status delivered to ' + req.ip);
 		req.app.locals.debug.object(result);
 
 		// Return a 200 OK with the lookup result.
