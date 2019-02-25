@@ -4,6 +4,9 @@ const express = require('express');
 // Create an instance of an express application.
 const app = express();
 
+// Add support for Cross-Origin settings.
+const cors = require('cors');
+
 // Load the configuration file.
 app.locals.config = require("./config.js");
 
@@ -19,7 +22,8 @@ require("./src/protocol.js")(app);
 //
 app.locals.debug.struct('Starting service initialization.');
 
-// Configure the express application?
+// Configure CORS an Express settings.
+app.use(cors());
 app.use(express.json());
 
 // Ask express to parse proxy headers.
