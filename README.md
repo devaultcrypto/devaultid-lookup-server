@@ -35,7 +35,7 @@ To make the server automatically respond to new blocks, add a line in `/etc/bitc
 
 ```
 # Update cash account index upon new block.
-blocknotify=curl "http://localhost:3001/newblock"
+blocknotify=curl "http://localhost:8585/newblock"
 ```
 
 ## How to use
