@@ -21,6 +21,8 @@ Edit the `config.json` file to your desired **server** and **node** settings.
 * `port`: Which port the server should listen for requests on.
 * `database`: Where to store the servers database file(s).
 * `storage`: What data should be cached by the server.
+* `metadata`: Enables or disables full metadata lookups
+* `registration`: Enables or disables public free registrations.
 
 #### Node settings:
 
@@ -84,8 +86,18 @@ Once the server has indexed an account, the account metadata can be retrieved wi
    Returns metadata for a single account.
 
 
-#### Register new accounts (NOT IMPLEMENTED)
+#### Register new accounts
 
-If the server is configured to enable registrations, new accounts can be requested by sending a GET request to the following location:
+If the server is configured to enable registrations, new accounts can be requested by sending a POST request to the following location:
 
-* `https://hostname:port/register/<accountName>/<paymentData>`
+* `https://hostname:port/register/
+
+The request has to be JSON encoded and contain an object with the following fields:
+
+```{
+    name: '<name to register>',
+    payments:
+    [
+        '<Array with one or more payment fields>'
+    ]
+}```
