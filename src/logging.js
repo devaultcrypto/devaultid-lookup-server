@@ -50,6 +50,7 @@ module.exports = function(app)
 	app.locals.debug.errors.enabled = true;
 	app.locals.debug.status.enabled = true;
 	app.locals.debug.blocks.enabled = true;
+	app.locals.debug.server.enabled = true;
 	//app.locals.debug.result.enabled = true;
 
 	// Notify the user that logging has been initialized.
