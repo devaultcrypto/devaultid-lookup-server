@@ -106,4 +106,6 @@ The request has to be JSON encoded and contain an object with the following fiel
 
 A request can be simulated with `curl` like this:
 
-```curl -i -H "Accept: application/json" -H "Content-Type: application/json" -X POST -d '{"name": "accountName", "payments": ["qzvxp5vf4g857stc5c6se3vus7upnkn65zz3rsg8g"]}' https://api.cashaccount.info/register```
+```
+curl -i -H "Accept: application/json" -H "Content-Type: application/json" -X POST -d '{"name": "accountName", "payments": ["qzvxp5vf4g857stc5c6se3vus7upnkn65zz3rsg8g"]}' https://api.cashaccount.info/register
+```
