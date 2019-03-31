@@ -13,6 +13,12 @@ module.exports =
 		// 1: Minimal (Lookup transaction data and inclusion proofs on-demand)
 		// 2: Default (Store transaction data and inclusion proofs in database)
 		storage: 2,
+
+		// Should we enable pre-parsed metadata requests?
+		metadata: false,
+
+		// Should we enable free registrations?
+		register: false
 	},
 
 	// Location and credentials to connect to a fullnode RPC.

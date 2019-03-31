@@ -5,6 +5,12 @@ const router = express.Router();
 //
 router.get('/:accountNumber/:accountName/:accountHash?', async function (req, res)
 {
+	if(!req.app.locals.config.server.metadata)
+	{
+		// Return a 501 Not Implemented
+		return res.status(501).json({ error: 'The metadata feature is disable on this service.' });
+	}
+
 	// Notify the server admin that a lookup request has been received.
 	req.app.locals.debug.server('Registration metadata requested by ' + req.ip);
 	req.app.locals.debug.struct('Validating lookup request input fields.');

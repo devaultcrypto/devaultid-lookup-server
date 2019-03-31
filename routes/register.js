@@ -8,6 +8,12 @@ const BitcoreCash = require('bitcore-lib-cash');
 // Wrap the register function in an async function.
 const registerAccount = async function (req, res)
 {
+	if(!req.app.locals.config.server.register)
+	{
+		// Return a 501 Not Implemented
+		return res.status(501).json({ error: 'The registration feature is disable on this service.' });
+	}
+	
 	// Notify the server admin that a lookup request has been received.
 	req.app.locals.debug.server('Account registration requested by ' + req.ip);
 	req.app.locals.debug.object(req.body);

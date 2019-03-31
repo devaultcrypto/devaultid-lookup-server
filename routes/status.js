@@ -20,8 +20,8 @@ router.get('/', async function (req, res)
 		result.features =
 		{
 			lookup: true,
-			account: true,
-			register: false
+			account: req.app.locals.config.server.metadata,
+			register: req.app.locals.config.server.register
 		}
 
 		// Add software information.
