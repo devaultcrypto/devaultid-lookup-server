@@ -46,7 +46,7 @@ Before you can use the lookup server you need to start it by running:
 # node server.js
 ```
 
-#### Server status (NOT IMPLEMENTED)
+#### Server status
 
 * `https://hostname:port/status`
 
