@@ -7,6 +7,13 @@ const app = express();
 // Add support for Cross-Origin settings.
 const cors = require('cors');
 
+// Add support for parsing POST bodies.
+const bodyParser = require('body-parser');
+
+// Enable parsing of both JSON and URL-encoded bodies.
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+
 // Load the configuration file.
 app.locals.config = require("./config.js");
 
@@ -34,9 +41,10 @@ app.set('json spaces', 2);
 
 // Create routes from separate files.
 app.use('/status', require('./routes/status.js'));
+app.use('/display', require('./routes/display.js'));
 app.use('/lookup', require('./routes/lookup.js'));
 app.use('/account', require('./routes/metadata.js'));
-//app.use('/register', require('./routes/register.js'));
+app.use('/register', require('./routes/register.js'));
 //app.use('/statistics', require('./routes/statistics.js'));
 app.use('/newblock', require('./routes/parser.js'));
 

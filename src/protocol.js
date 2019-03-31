@@ -10,6 +10,7 @@ module.exports = function(app)
 	// Define protocol constants.
 	app.locals.protocol =
 	{
+		identifierHex: '01010101',
 		blockModifier: 563620,
 		nameRegexp: /[a-zA-Z0-9_]{1,99}/,
 		hashRegexp: /[0-9]{1,10}/,
