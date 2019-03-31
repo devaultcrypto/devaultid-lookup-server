@@ -94,10 +94,16 @@ If the server is configured to enable registrations, new accounts can be request
 
 The request has to be JSON encoded and contain an object with the following fields:
 
-```{
+```
+{
     name: '<name to register>',
     payments:
     [
         '<Array with one or more payment fields>'
     ]
-}```
+}
+```
+
+A request can be simulated with `curl` like this:
+
+```curl -i -H "Accept: application/json" -H "Content-Type: application/json" -X POST -d '{"name": "accountName", "payments": ["qzvxp5vf4g857stc5c6se3vus7upnkn65zz3rsg8g"]}' https://api.cashaccount.info/register```
