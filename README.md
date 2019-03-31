@@ -45,7 +45,7 @@ blocknotify=curl "http://localhost:8585/newblock"
 Before you can use the lookup server you need to start it by running:
 
 ```
-# node server.js
+# npm start
 ```
 
 #### Server status
