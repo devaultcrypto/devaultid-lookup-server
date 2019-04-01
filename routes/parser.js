@@ -154,12 +154,15 @@ req.app.locals.debug.timer9('-');
 			catch (error)
 			{
 				// First try with BUs RPC structure..
-				let newBlock = await req.app.locals.rpc('getBlock', block.blockHashHex, true, true);
-				counters.rpc_calls += 1;
-
-				// If the response is invalid, try with ABCs RPC structure.
-				if(typeof newBlock.tx == 'undefined')
+				let newBlock;
+				try
 				{
+					newBlock = await req.app.locals.rpc('getBlock', block.blockHashHex, true, true);
+					counters.rpc_calls += 1;
+				}
+				catch (error)
+				{
+					// If the response is invalid, try with ABCs RPC structure.
 					newBlock = await req.app.locals.rpc('getBlock', block.blockHashHex, true);
 					counters.rpc_calls += 1;
 				}
