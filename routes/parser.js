@@ -153,16 +153,17 @@ req.app.locals.debug.timer9('-');
 			// Fall back to old one-at-a-time calls when not available.
 			catch (error)
 			{
-				// First try with BUs RPC structure..
 				let newBlock;
+
+				// First try with BUs RPC structure..
 				try
 				{
 					newBlock = await req.app.locals.rpc('getBlock', block.blockHashHex, true, true);
 					counters.rpc_calls += 1;
 				}
+				// If the response is invalid, try with ABCs RPC structure.
 				catch (error)
 				{
-					// If the response is invalid, try with ABCs RPC structure.
 					newBlock = await req.app.locals.rpc('getBlock', block.blockHashHex, true);
 					counters.rpc_calls += 1;
 				}
