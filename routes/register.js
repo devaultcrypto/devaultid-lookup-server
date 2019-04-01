@@ -119,7 +119,7 @@ const registerAccount = async function (req, res)
 		let sentTransaction = await req.app.locals.rpc('sendrawtransaction', signedTransaction.hex);
 
 		// Notify the server admin that a lookup request has been received.
-		req.app.locals.debug.server('Account registration completed for ' + req.ip);
+		req.app.locals.debug.server('Account ' + req.body.name + ' registered for ' + req.ip);
 		req.app.locals.debug.object({ txid: sentTransaction, hex: signedTransaction.hex });
 
 		// Return the TXID to the caller.
