@@ -14,7 +14,7 @@ This lookup server is written for NodeJS and fetches data and gets information a
 
 ## Configuration
 
-Edit the `config.json` file to your desired **server** and **node** settings.
+Edit the `config.example.js` file to your desired **server** and **node** settings and copy it to `config.js`.
 
 #### Server settings:
 
