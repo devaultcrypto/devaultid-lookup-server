@@ -55,17 +55,35 @@ const registerAccount = async function (req, res)
 		{
 
 			// Add network if omitted.
-			if(!req.body.payments[index].startsWith('bitcoincash:'))
+			if(req.body.payments[index].indexOf(':') == -1)
 			{
 				req.body.payments[index] = 'bitcoincash:' + req.body.payments[index];
 			}
-			
+
 			// If the network is a token aware network..
 			if(req.body.payments[index].startsWith('simpleledger:'))
 			{
-				// TODO: Parse and set the payment type and data.
-				paymentType = false;
-				paymentData = false;
+				// Add support for SLP address functions.
+				let Utils = require('slpjs').Utils;
+
+				// Convert the address to CashAddr.
+				let cashAddr = Utils.toCashAddress(req.body.payments[index]);
+
+				// Decode the payment data as if it was a CashAddr address.
+				decodedAddress = BitcoreCash.Address._decodeCashAddress(cashAddr);
+
+				// If the decoded type is a key hash..
+				if(decodedAddress.type == 'pubkeyhash')
+				{
+					paymentType = Buffer.from('81', 'hex');
+					paymentData = decodedAddress.hashBuffer;
+				}
+				// If the decoded type is a script hash..
+				else if(decodedAddress.type == 'scripthash')
+				{
+					paymentType = Buffer.from('82', 'hex');
+					paymentData = decodedAddress.hashBuffer;
+				}
 			}
 
 			// Add network is bitcoincash..
@@ -88,12 +106,12 @@ const registerAccount = async function (req, res)
 				}
 			}
 		}
-		catch (error)
+		catch(error)
 		{
 			// Return a 500 Internal server error..
 			return res.status(500).json({ error: 'Service unable to parse payment data.' });
 		}
-		
+
 		if(paymentType && paymentData)
 		{
 			registrationScript.add(Buffer.concat([paymentType, paymentData]), "hex");
