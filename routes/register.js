@@ -19,6 +19,7 @@ const registerAccount = async function (req, res)
 	req.app.locals.debug.object(req.body);
 
 	let paymentData;
+	let paymentType;
 	let registrationScript = new BitcoreCash.Script();
 	
 	// Start by adding the OP_RETURN.
@@ -46,16 +47,41 @@ const registerAccount = async function (req, res)
 	
 	for(let index in req.body.payments)
 	{
-		// Add network if omitted.
-		if(!req.body.payments[index].startsWith('bitcoincash:'))
-		{
-			req.body.payments[index] = 'bitcoincash:' + req.body.payments[index];
-		}
-		
 		try
 		{
-			// Decode the payment data as if it was a CashAddr address.
-			paymentData = BitcoreCash.Address._decodeCashAddress(req.body.payments[index]);
+			// Add network if omitted.
+			if(!req.body.payments[index].startsWith('bitcoincash:'))
+			{
+				req.body.payments[index] = 'bitcoincash:' + req.body.payments[index];
+			}
+			
+			// If the network is a token aware network..
+			if(req.body.payments[index].startsWith('simpleledger:'))
+			{
+				// TODO: Parse and set the payment type and data.
+				paymentType = false;
+				paymentData = false;
+			}
+
+			// Add network is bitcoincash..
+			if(req.body.payments[index].startsWith('bitcoincash:'))
+			{
+				// Decode the payment data as if it was a CashAddr address.
+				decodedAddress = BitcoreCash.Address._decodeCashAddress(req.body.payments[index]);
+
+				// If the decoded type is a key hash..
+				if(decodedAddress.type == 'pubkeyhash')
+				{
+					paymentType = Buffer.from('01', 'hex');
+					paymentData = decodedAddress.hashBuffer;
+				}
+				// If the decoded type is a script hash..
+				else if(decodedAddress.type == 'scripthash')
+				{
+					paymentType = Buffer.from('02', 'hex');
+					paymentData = decodedAddress.hashBuffer;
+				}
+			}
 		}
 		catch (error)
 		{
@@ -63,14 +89,9 @@ const registerAccount = async function (req, res)
 			return res.status(500).json({ error: 'Service unable to parse payment data.' });
 		}
 		
-		// add the payment data to the script.
-		if(paymentData.type == 'pubkeyhash')
+		if(paymentType && paymentData)
 		{
-			registrationScript.add(Buffer.concat([Buffer.from('01', 'hex'), paymentData.hashBuffer]), "hex");
-		}
-		else if(paymentData.type == 'scripthash')
-		{
-			registrationScript.add(Buffer.concat([Buffer.from('02', 'hex'), paymentData.hashBuffer]), "hex");
+			registrationScript.add(Buffer.concat([paymentType, paymentData]), "hex");
 		}
 		else
 		{
