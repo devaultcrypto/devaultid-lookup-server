@@ -47,8 +47,13 @@ const registerAccount = async function (req, res)
 	
 	for(let index in req.body.payments)
 	{
+		// Reset to prevent bleed-over from earlier loops.
+		paymentType = false;
+		paymentData = false;
+
 		try
 		{
+
 			// Add network if omitted.
 			if(!req.body.payments[index].startsWith('bitcoincash:'))
 			{
