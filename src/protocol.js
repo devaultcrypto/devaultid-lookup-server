@@ -69,21 +69,25 @@ module.exports = function(app)
 			{
 				// Type: Key Hash
 				case 1:
+				case 129:
 				{
 					return BitcoreCash.Address(payload_data, 'livenet', 'pubkeyhash').toCashAddress();
 				}
 				// Type: Script Hash
 				case 2:
+				case 130:
 				{
 					return BitcoreCash.Address(payload_data, 'livenet', 'scripthash').toCashAddress();
 				}
 				// Type: Payment Code
 				case 3:
+				case 131:
 				{
 					return BitcoreCash.encoding.Base58Check.encode(Buffer.concat([ Buffer.from('47', 'hex'), payload_data ]));
 				}
 				// Type: Stealth Keys
 				case 4:
+				case 132:
 				{
 					return null;
 				}
