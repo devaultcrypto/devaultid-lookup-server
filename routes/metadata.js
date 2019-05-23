@@ -116,6 +116,12 @@ router.get('/:accountNumber/:accountName/:accountHash?', async function (req, re
 				payment: [],
 			}
 
+			// Assign the account to the list of accounts if needed.
+			if(typeof accounts[account_id] == 'undefined')
+			{
+				accounts[account_id] = account;
+			}
+			
 			if(typeof databaseLookupResult[resultIndex].payload_type != 'undefined' && typeof req.app.locals.protocol.payloadTypes[databaseLookupResult[resultIndex].payload_type] != 'undefined')
 			{
 				// Parse payment information.
@@ -126,13 +132,7 @@ router.get('/:accountNumber/:accountName/:accountHash?', async function (req, re
 				}
 
 				// Add this payment information to the account.
-				account.payment.push(paymentInformation);
-			}
-
-			// Assign the account to the list of accounts if needed.
-			if(typeof accounts[account_id] == 'undefined')
-			{
-				accounts[account_id] = account;
+				accounts[account_id].payment.push(paymentInformation);
 			}
 		}
 
