@@ -284,8 +284,8 @@ req.app.locals.debug.timer9('Finished getting raw transactions.');
 										// Determine the length of the pushed data and control codes.
 										if(opCode <= 75) { pushLength = opCode; }
 										if(opCode == 76) { pushLength = registration.readUInt8(1);    dropLength += 1; }
-										if(opCode == 77) { pushLength = registration.readUInt16BE(1); dropLength += 2; }
-										if(opCode == 78) { pushLength = registration.readUInt32BE(1); dropLength += 4; }
+										if(opCode == 77) { pushLength = registration.readUInt16LE(1); dropLength += 2; }
+										if(opCode == 78) { pushLength = registration.readUInt32LE(1); dropLength += 4; }
 
 										// Remove the control codes.
 										registration = registration.slice(dropLength);
