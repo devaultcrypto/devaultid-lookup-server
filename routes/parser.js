@@ -138,7 +138,7 @@ const parseBlock = async function (req, res)
 			// TODO: Remove getBlock when we no longer need it due to getting the raw transaction list directly.
 			
 			//
-			req.app.locals.debug.struct('Requesting block contents from Bitcoin RPC node.');
+			req.app.locals.debug.struct('Requesting block contents from DeVault RPC node.');
 
 // Roughly 75~95% of application time is spent getting raw transactions.
 req.app.locals.debug.timer9('-');
@@ -180,13 +180,13 @@ req.app.locals.debug.timer9('-');
 req.app.locals.debug.timer9('Finished getting raw transactions.');
 
 			//
-			req.app.locals.debug.struct('Received block contents from Bitcoin RPC node.');
+			req.app.locals.debug.struct('Received block contents from DeVault RPC node.');
 			req.app.locals.debug.blocks('Parsing block #' + block.height + ' [' + block.blockHashHex + ']');
 			req.app.locals.debug.object(transactionList);
 
 
 			/*
-			* 1) To register a Cash Account you broadcast a Bitcoin Cash transaction 
+			* 1) To register a Cash Account you broadcast a DeVault transaction 
 			* 2) with a single OP_RETURN output in any position, 
 			* 3) containing a Protocol Identifier, an Account Name and 
 			* 4) one or more Payment Data.

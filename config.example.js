@@ -24,13 +24,13 @@ module.exports =
 	// Location and credentials to connect to a fullnode RPC.
 	node:
 	{
-		// The address where we can reach a Bitcoin RPC service.
+		// The address where we can reach a DeVault RPC service.
 		address: '127.0.0.1',
 
-		// The port on which the Bitcoin RPC service listens to.
+		// The port on which the DeVault RPC service listens to.
 		port: '8332',
 
-		// The username and password for the Bitcoin RPC service.
+		// The username and password for the DeVault RPC service.
 		user: '',
 		pass: ''
 	},

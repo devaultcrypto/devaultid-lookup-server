@@ -2,7 +2,7 @@
 
 ## Requirements
 
-This lookup server is written for NodeJS and fetches data and gets information about new blocks from a full node supporting the Bitcoin RPC interface configured to index all transactions.
+This lookup server is written for NodeJS and fetches data and gets information about new blocks from a full node supporting the DeVault RPC interface configured to index all transactions.
 
 ## Installation
 

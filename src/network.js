@@ -59,7 +59,7 @@ module.exports = function(app)
 	};
 
 	//
-	app.locals.debug.silent('Prepared connection to Bitcoin RPC node.');
+	app.locals.debug.silent('Prepared connection to DeVault RPC node.');
 
 	//
 	app.locals.debug.struct('Completed network module initialization.');
