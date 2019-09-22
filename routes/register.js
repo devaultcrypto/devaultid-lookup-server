@@ -57,7 +57,7 @@ const registerAccount = async function (req, res)
 			// Add network if omitted.
 			if(req.body.payments[index].indexOf(':') == -1)
 			{
-				req.body.payments[index] = 'bitcoincash:' + req.body.payments[index];
+				req.body.payments[index] = 'devault:' + req.body.payments[index];
 			}
 
 			// If the network is a token aware network..
@@ -86,8 +86,8 @@ const registerAccount = async function (req, res)
 				}
 			}
 
-			// Add network is bitcoincash..
-			if(req.body.payments[index].startsWith('bitcoincash:'))
+			// Add network is devault..
+			if(req.body.payments[index].startsWith('devault:'))
 			{
 				// Decode the payment data as if it was a CashAddr address.
 				decodedAddress = BitcoreCash.Address._decodeCashAddress(req.body.payments[index]);
