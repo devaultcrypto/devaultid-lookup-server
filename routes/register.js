@@ -2,8 +2,8 @@
 const express = require('express');
 const router = express.Router();
 
-// Enable the bitcore-lib-cash library functions.
-const BitcoreCash = require('bitcore-lib-cash');
+// Enable the bitcore-lib-dvt library functions.
+const BitcoreCash = require('bitcore-lib-dvt');
 
 // Wrap the register function in an async function.
 const registerAccount = async function (req, res)
