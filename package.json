@@ -1,5 +1,5 @@
 {
-  "name": "cashaccount-lookup-server",
+  "name": "devaultid-lookup-server",
   "version": "1.0.1",
   "description": "An indexing and lookup server for CashAccounts",
   "main": "server.js",
