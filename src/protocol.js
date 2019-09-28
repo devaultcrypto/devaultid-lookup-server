@@ -4,8 +4,8 @@ module.exports = function(app)
 	//
 	app.locals.debug.struct('Initializing protocol module.');
 
-	// Enable the bitcore-lib-cash library functions.
-	const BitcoreCash = require('bitcore-lib-cash');
+	// Enable the bitcore-lib-dvt library functions.
+	const BitcoreCash = require('bitcore-lib-dvt');
 
 	// Define protocol constants.
 	app.locals.protocol =

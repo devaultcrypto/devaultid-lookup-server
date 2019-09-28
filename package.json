@@ -6,7 +6,7 @@
   "dependencies": {
     "better-sqlite3": "^5.4.0",
     "bitcoin-cash-rpc": "^0.4.1",
-    "bitcore-lib-cash": "^0.19.0",
+    "bitcore-lib-dvt": "^8.1.1",
     "body-parser": "^1.18.3",
     "cors": "^2.8.5",
     "debug": "^4.1.1",
