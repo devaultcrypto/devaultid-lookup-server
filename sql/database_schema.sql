@@ -12,7 +12,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS index_block_hash ON blocks (block_hash);
 
 /* Insert the activation block as an anchor. */
 INSERT OR IGNORE INTO blocks (block_hash, block_height) 
-VALUES (X'0000000000000001309b28137aed45bacbf7b4b4822b915aaa37a93902aeac4c', 72013);
+VALUES (X'000000000000003db1e5412c6630e2d1c201ea247a3f71bf9c99c7a08d1cfd71', 72012);
 
 /* Keep track of the best chaintip a chain of blocks is part of */
 CREATE TABLE IF NOT EXISTS block_chain
