@@ -1,4 +1,4 @@
-# Cash Account Lookup Server
+# DeVault ID Lookup Server
 
 ## Requirements
 
@@ -7,8 +7,8 @@ This lookup server is written for NodeJS and fetches data and gets information a
 ## Installation
 
 ```
-# git clone https://gitlab.com/cash-accounts/lookup-server
-# cd lookup-server
+# git clone https://github.com/devaultcrypto/devaultid-lookup-server.git
+# cd devaultid-lookup-server
 # npm install
 ```
 
@@ -36,7 +36,7 @@ Edit the `config.example.js` file to your desired **server** and **node** settin
 To make the server automatically respond to new blocks, add a line in `/etc/bitcoin/bitcoin.conf`:
 
 ```
-# Update cash account index upon new block.
+# Update devault id index upon new block.
 blocknotify=curl "http://localhost:8585/newblock"
 ```
 
