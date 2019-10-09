@@ -11,7 +11,7 @@ module.exports = function(app)
 	app.locals.protocol =
 	{
 		identifierHex: '01010101',
-		blockModifier: 71913,
+		blockModifier: 83750,
 		nameRegexp: /[a-zA-Z0-9_]{1,99}/,
 		hashRegexp: /[0-9]{1,10}/,
 		payloadTypes:
