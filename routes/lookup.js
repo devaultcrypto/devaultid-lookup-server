@@ -16,7 +16,7 @@ router.get('/:accountNumber/:accountName?/:accountHash?', async function (req, r
 	let lookupResult = {};
 
 	// Validate that the account number is in the given range.
-	if(req.params['accountNumber'] && parseInt(req.params['accountNumber']) < 100)
+	if(req.params['accountNumber'] && parseInt(req.params['accountNumber']) < 1)
 	{
 		lookupResult.error = 'The account number is not in the valid range.';
 	}
