@@ -4,7 +4,7 @@ CREATE TABLE IF NOT EXISTS blocks
 	block_height INTEGER NOT NULL,
 	block_hash BLOB NOT NULL,
 	PRIMARY KEY (block_height),
-	CHECK (block_height >= 83750)
+	CHECK (block_height >= 84000)
 );
 
 /* Index blocks by block hash and block height separately. */
@@ -12,7 +12,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS index_block_hash ON blocks (block_hash);
 
 /* Insert the activation block as an anchor. */
 INSERT OR IGNORE INTO blocks (block_hash, block_height) 
-VALUES (X'000000000000009aae550fdfb26c68eb0e638f16dab01132b3af5e5b622b563f', 83750);
+VALUES (X'00000000000000473e9ab665ce3979dad7b0085d77ef64cbbd857090d177732b', 84000);
 
 /* Keep track of the best chaintip a chain of blocks is part of */
 CREATE TABLE IF NOT EXISTS block_chain
@@ -85,12 +85,12 @@ CREATE TABLE IF NOT EXISTS service_status
 	PRIMARY KEY (chain_root),
 	FOREIGN KEY (chain_root) REFERENCES blocks (block_height) ON DELETE RESTRICT ON UPDATE RESTRICT,
 	FOREIGN KEY (chain_tip) REFERENCES blocks (block_height) ON DELETE RESTRICT ON UPDATE RESTRICT,
-	CHECK (chain_root == 83750)
+	CHECK (chain_root == 84000)
 );
 
 /* Insert the chain root to prevent unwanted deletion of active chain data. */
 INSERT OR IGNORE INTO service_status (chain_tip, chain_root)
-VALUES (83750, 83750);
+VALUES (84000, 84000);
 
 /* Store payloads separately to avoid duplication */
 CREATE TABLE IF NOT EXISTS payloads
